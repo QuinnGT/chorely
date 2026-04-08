@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { eq, and } from 'drizzle-orm';
+import { eq, and, gte, lte, inArray } from 'drizzle-orm';
 import { db } from '@/db';
 import { choreCompletions, choreAssignments } from '@/db/schema';
 import { toggleCompletionSchema } from '@/lib/validators';
@@ -26,10 +26,9 @@ export async function GET(request: Request): Promise<NextResponse> {
       return NextResponse.json([]);
     }
 
-    // Get completions for those assignments
+    // Get completions using proper SQL filtering
     let completions;
     if (weekStart) {
-      // Get completions for a specific week (7 days from weekStart)
       const endDate = new Date(weekStart);
       endDate.setDate(endDate.getDate() + 6);
       const endStr = endDate.toISOString().split('T')[0];
@@ -39,23 +38,17 @@ export async function GET(request: Request): Promise<NextResponse> {
         .from(choreCompletions)
         .where(
           and(
+            inArray(choreCompletions.assignmentId, assignmentIds),
             eq(choreCompletions.completed, true),
+            gte(choreCompletions.date, weekStart),
+            lte(choreCompletions.date, endStr)
           )
         );
-
-      // Filter by assignment IDs and date range in JS for simplicity
-      completions = completions.filter(
-        (c) =>
-          assignmentIds.includes(c.assignmentId) &&
-          c.date >= weekStart &&
-          c.date <= endStr
-      );
     } else {
       completions = await db
         .select()
-        .from(choreCompletions);
-
-      completions = completions.filter((c) => assignmentIds.includes(c.assignmentId));
+        .from(choreCompletions)
+        .where(inArray(choreCompletions.assignmentId, assignmentIds));
     }
 
     return NextResponse.json(completions);
