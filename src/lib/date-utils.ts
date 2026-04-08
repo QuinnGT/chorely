@@ -51,9 +51,12 @@ export function isPast(date: Date): boolean {
   return d < today;
 }
 
-/** Format a date as YYYY-MM-DD string for DB storage */
+/** Format a date as YYYY-MM-DD string for DB storage (uses local timezone) */
 export function formatDate(date: Date): string {
-  return date.toISOString().split('T')[0];
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, '0');
+  const d = String(date.getDate()).padStart(2, '0');
+  return `${y}-${m}-${d}`;
 }
 
 /** Format a date as a friendly display string (e.g., "Mon", "Tue") */

@@ -1,12 +1,11 @@
 /**
  * Allowance engine — calculates weekly payout and streak bonuses.
  *
- * Rules:
- * - $5 if ALL chores completed for the week
- * - $3 if some (but not all) chores completed (partial)
- * - +$3 bonus if daily chores have a consecutive streak ≥ 7 days
- * - $0 if nothing completed
+ * Rules are configurable via AllowanceRules. When no rules are provided,
+ * DEFAULT_RULES are used ($5 full / $3 partial / $3 bonus / 7-day streak).
  */
+
+import { type AllowanceRules, DEFAULT_RULES } from '@/lib/allowance-rules-types';
 
 interface CompletionRecord {
   date: string;
@@ -30,11 +29,13 @@ interface AllowanceResult {
  * @param completions - All completion records for the kid this week
  * @param totalExpected - Total number of expected completions (daily × 7 + weekly × 1)
  * @param streakDays - Number of consecutive days ALL daily chores were completed (across weeks)
+ * @param rules - Configurable allowance rules (defaults to DEFAULT_RULES)
  */
 export function calculateAllowance(
   completions: readonly CompletionRecord[],
   totalExpected: number,
-  streakDays: number
+  streakDays: number,
+  rules: AllowanceRules = DEFAULT_RULES
 ): AllowanceResult {
   if (totalExpected === 0) {
     return {
@@ -56,12 +57,12 @@ export function calculateAllowance(
 
   let base = 0;
   if (isFullCompletion) {
-    base = 5;
+    base = rules.fullCompletionAmount;
   } else if (isPartialCompletion) {
-    base = 3;
+    base = rules.partialCompletionAmount;
   }
 
-  const bonus = streakDays >= 7 ? 3 : 0;
+  const bonus = streakDays >= rules.minStreakDays ? rules.streakBonusAmount : 0;
 
   return {
     base,
