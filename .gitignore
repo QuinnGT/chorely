@@ -40,6 +40,14 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 
-#google antigravity
+# ide / agent working files
 .agent/
 .plans/
+.kiro/
+.playwright-mcp
+.screenshots
+
+# debug screenshots & design mockups
+*.png
+!public/**/*.png
+mockups/

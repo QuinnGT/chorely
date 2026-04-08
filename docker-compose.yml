@@ -1,3 +1,6 @@
+# docker compose up db
+# docker compose --profile full up
+
 services:
   db:
     image: postgres:17-alpine
@@ -30,6 +33,8 @@ services:
     depends_on:
       db:
         condition: service_healthy
+    profiles:
+      - full
 
 volumes:
   pgdata:

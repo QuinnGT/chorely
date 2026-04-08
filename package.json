@@ -6,10 +6,15 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "test": "vitest --run",
+    "db:push": "pnpm exec dotenv -e .env.local -- pnpm drizzle-kit push",
+    "db:seed": "pnpm tsx src/db/seed.ts"
   },
   "dependencies": {
     "@ai-sdk/openai": "^3.0.41",
+    "@ai-sdk/react": "^3.0.118",
+    "@mem0/vercel-ai-provider": "^2.0.5",
     "@openrouter/ai-sdk-provider": "^2.3.3",
     "ai": "^6.0.116",
     "drizzle-orm": "^0.45.1",
@@ -23,15 +28,23 @@
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
+    "@testing-library/jest-dom": "^6.9.1",
+    "@testing-library/react": "^16.3.2",
+    "@testing-library/user-event": "^14.6.1",
     "@types/node": "^25",
     "@types/pg": "^8.18.0",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "dotenv": "^17.3.1",
+    "dotenv-cli": "^11.0.0",
     "drizzle-kit": "^0.31.9",
     "eslint": "^10",
     "eslint-config-next": "16.1.7",
+    "fast-check": "^4.6.0",
+    "jsdom": "^29.0.0",
     "tailwindcss": "^4",
     "tsx": "^4.21.0",
-    "typescript": "^5"
+    "typescript": "^5",
+    "vitest": "^4.1.0"
   }
 }
