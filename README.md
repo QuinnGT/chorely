@@ -4,6 +4,28 @@ A family chore and allowance management app that makes household responsibilitie
 
 Kids pick their profile, check off daily chores, earn allowance, save toward goals, and spend coins in a reward store. Parents manage everything from a PIN-protected admin panel. An optional AI assistant helps kids stay on track with voice and chat.
 
+## Screenshots
+
+<details open>
+<summary>📱 Kid views — dashboard, goals, store, weekly summary</summary>
+<br>
+
+| Dashboard | Goals | Reward Store | Weekly Summary |
+|:---------:|:-----:|:------------:|:--------------:|
+| <img src="public/app-screenshots/frontend/kids-dashboard.png" width="220" alt="Kids dashboard"> | <img src="public/app-screenshots/frontend/kids-goals.png" width="220" alt="Savings goals"> | <img src="public/app-screenshots/frontend/kids-store.png" width="220" alt="Reward store"> | <img src="public/app-screenshots/frontend/kids-weekly-summary.png" width="220" alt="Weekly summary"> |
+
+</details>
+
+<details open>
+<summary>🔧 Admin panel — kids, chores, allowance, themes, voice</summary>
+<br>
+
+| Kid Management | Chore Manager | Allowance | Themes | Voice Settings |
+|:--------------:|:-------------:|:---------:|:------:|:--------------:|
+| <img src="public/app-screenshots/admin/family-admin-kid-management.png" width="220" alt="Kid management"> | <img src="public/app-screenshots/admin/family-admin-chore-manager.png" width="220" alt="Chore manager"> | <img src="public/app-screenshots/admin/family-admin-allowance-manager.png" width="220" alt="Allowance manager"> | <img src="public/app-screenshots/admin/family-admin-themes.png" width="220" alt="Theme settings"> | <img src="public/app-screenshots/admin/family-admin-voice.png" width="220" alt="Voice settings"> |
+
+</details>
+
 ## Features
 
 ### For Kids

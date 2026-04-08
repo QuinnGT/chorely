@@ -65,7 +65,7 @@ export default function KidLayout({ children }: { children: React.ReactNode }) {
         onSettingsTap={handleSettingsTap}
       />
 
-      <div className="pt-20 pb-24 lg:pb-4 px-4">
+      <div className="pt-24 pb-24 lg:pb-4 px-4">
         {children}
       </div>
 
