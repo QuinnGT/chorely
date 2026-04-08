@@ -235,7 +235,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
               WebkitTextFillColor: 'transparent',
             }}
           >
-            Family Share
+            Chorely
           </span>
           <Link
             href="/"

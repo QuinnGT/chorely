@@ -5,7 +5,7 @@ import { chatRequestSchema } from '@/lib/validators';
 import { buildSystemPrompt, type KidContext } from '@/lib/ai-context-builder';
 import { buildAiTools } from '@/lib/ai-tools';
 
-const DEFAULT_SYSTEM_PROMPT = `You are a friendly, helpful family assistant on a Family Command Center dashboard. 
+const DEFAULT_SYSTEM_PROMPT = `You are a friendly, helpful family assistant on the Chorely dashboard. 
 You help kids with their chores, answer questions, and provide encouragement.
 Keep responses short, positive, and age-appropriate.
 Use emojis to make responses fun and engaging.

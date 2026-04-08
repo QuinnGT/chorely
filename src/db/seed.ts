@@ -14,15 +14,6 @@ function daysAgo(n: number): string {
   return d.toISOString().split('T')[0];
 }
 
-// Helper: Monday of current week
-function currentWeekMonday(): string {
-  const d = new Date();
-  const day = d.getDay();
-  const diff = d.getDate() - day + (day === 0 ? -6 : 1);
-  d.setDate(diff);
-  return d.toISOString().split('T')[0];
-}
-
 // Helper: Monday of N weeks ago
 function weeksAgo(n: number): string {
   const d = new Date();
@@ -56,18 +47,16 @@ async function seed(): Promise<void> {
   await db.delete(schema.appSettings).catch(() => {});
 
   // ─── Kids ─────────────────────────────────────────────────────────────────
-  const [liesl, gideon, leo, maya, sam] = await db
+  const [leo, maya, sam] = await db
     .insert(schema.kids)
     .values([
-      { name: 'Liesl', themeColor: '#006571', avatarUrl: null },
-      { name: 'Gideon', themeColor: '#f43f5e', avatarUrl: null },
       { name: 'Leo', themeColor: '#0d9488', avatarUrl: null },
       { name: 'Maya', themeColor: '#7c3aed', avatarUrl: null },
       { name: 'Sam', themeColor: '#f59e0b', avatarUrl: null },
     ])
     .returning();
 
-  console.log(`  ✅ Created kids: ${liesl.name}, ${gideon.name}, ${leo.name}, ${maya.name}, ${sam.name}`);
+  console.log(`  ✅ Created kids: ${leo.name}, ${maya.name}, ${sam.name}`);
 
   // ─── Chores ───────────────────────────────────────────────────────────────
   const choreData = [
@@ -96,29 +85,11 @@ async function seed(): Promise<void> {
   ] = createdChores;
 
   // ─── Chore Assignments ────────────────────────────────────────────────────
-  // Liesl: daily chores + weekly vacuum/dust
-  // Gideon: daily chores + weekly trash/mow
   // Leo: daily chores + weekly vacuum
   // Maya: daily chores + weekly dust
   // Sam: daily chores + weekly trash/mow
 
   const assignmentRows = [
-    // Liesl
-    { choreId: makeBed.id, kidId: liesl.id },
-    { choreId: brushTeeth.id, kidId: liesl.id },
-    { choreId: homework.id, kidId: liesl.id },
-    { choreId: cleanRoom.id, kidId: liesl.id },
-    { choreId: setTable.id, kidId: liesl.id },
-    { choreId: vacuum.id, kidId: liesl.id },
-    { choreId: dustShelves.id, kidId: liesl.id },
-    // Gideon
-    { choreId: makeBed.id, kidId: gideon.id },
-    { choreId: brushTeeth.id, kidId: gideon.id },
-    { choreId: homework.id, kidId: gideon.id },
-    { choreId: cleanRoom.id, kidId: gideon.id },
-    { choreId: feedDog.id, kidId: gideon.id },
-    { choreId: takeOutTrash.id, kidId: gideon.id },
-    { choreId: mowLawn.id, kidId: gideon.id },
     // Leo (teal)
     { choreId: makeBed.id, kidId: leo.id },
     { choreId: brushTeeth.id, kidId: leo.id },
@@ -196,10 +167,6 @@ async function seed(): Promise<void> {
     }
   }
 
-  // Liesl: 90% daily completion rate (very consistent)
-  addCompletionsForKid(liesl.id, 0.9);
-  // Gideon: 75% daily completion rate
-  addCompletionsForKid(gideon.id, 0.75);
   // Leo: 85% daily completion rate
   addCompletionsForKid(leo.id, 0.85);
   // Maya: 70% daily completion rate
@@ -212,20 +179,6 @@ async function seed(): Promise<void> {
 
   // ─── Allowance Rules ──────────────────────────────────────────────────────
   await db.insert(schema.allowanceRules).values([
-    {
-      kidId: liesl.id,
-      fullCompletionAmount: '5.00',
-      partialCompletionAmount: '3.00',
-      streakBonusAmount: '3.00',
-      minStreakDays: 7,
-    },
-    {
-      kidId: gideon.id,
-      fullCompletionAmount: '5.00',
-      partialCompletionAmount: '3.00',
-      streakBonusAmount: '3.00',
-      minStreakDays: 7,
-    },
     {
       kidId: leo.id,
       fullCompletionAmount: '4.00',
@@ -261,7 +214,7 @@ async function seed(): Promise<void> {
     paidVia: string | null;
   }[] = [];
 
-  for (const kid of [liesl, gideon, leo, maya, sam]) {
+  for (const kid of [leo, maya, sam]) {
     for (let w = 1; w <= 4; w++) {
       const earned = (3 + Math.random() * 3).toFixed(2);
       const bonus = w % 2 === 0 ? (1 + Math.random() * 2).toFixed(2) : '0.00';
@@ -283,29 +236,6 @@ async function seed(): Promise<void> {
 
   // ─── Savings Goals ────────────────────────────────────────────────────────
   await db.insert(schema.savingsGoals).values([
-    // Liesl
-    {
-      kidId: liesl.id,
-      name: 'Sketch Pad Set',
-      targetAmount: '12.00',
-      currentAmount: '7.50',
-      status: 'active',
-    },
-    {
-      kidId: liesl.id,
-      name: 'New Headphones',
-      targetAmount: '25.00',
-      currentAmount: '10.00',
-      status: 'active',
-    },
-    // Gideon
-    {
-      kidId: gideon.id,
-      name: 'Science Kit',
-      targetAmount: '15.00',
-      currentAmount: '4.25',
-      status: 'active',
-    },
     // Leo (teal demo)
     {
       kidId: leo.id,
@@ -349,14 +279,6 @@ async function seed(): Promise<void> {
 
   // ─── Spending Categories (Money Jars) ─────────────────────────────────────
   const spendingCatRows = [
-    // Liesl
-    { kidId: liesl.id, name: 'Save', percentage: 50, sortOrder: 0 },
-    { kidId: liesl.id, name: 'Spend', percentage: 40, sortOrder: 1 },
-    { kidId: liesl.id, name: 'Give', percentage: 10, sortOrder: 2 },
-    // Gideon
-    { kidId: gideon.id, name: 'Save', percentage: 50, sortOrder: 0 },
-    { kidId: gideon.id, name: 'Spend', percentage: 40, sortOrder: 1 },
-    { kidId: gideon.id, name: 'Give', percentage: 10, sortOrder: 2 },
     // Leo (teal)
     { kidId: leo.id, name: 'Save', percentage: 40, sortOrder: 0 },
     { kidId: leo.id, name: 'Spend', percentage: 45, sortOrder: 1 },

@@ -1,20 +1,22 @@
 # docker compose up db
 # docker compose --profile full up
 
+name: chorely
+
 services:
   db:
     image: postgres:17-alpine
     restart: unless-stopped
     environment:
-      POSTGRES_USER: familyapp
-      POSTGRES_PASSWORD: familyapp
-      POSTGRES_DB: familycommandcenter
+      POSTGRES_USER: chorely
+      POSTGRES_PASSWORD: chorely
+      POSTGRES_DB: chorely
     ports:
       - "5432:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U familyapp -d familycommandcenter"]
+      test: ["CMD-SHELL", "pg_isready -U chorely -d chorely"]
       interval: 5s
       timeout: 5s
       retries: 5
@@ -27,7 +29,7 @@ services:
     ports:
       - "3000:3000"
     environment:
-      DATABASE_URL: postgresql://familyapp:familyapp@db:5432/familycommandcenter
+      DATABASE_URL: postgresql://chorely:chorely@db:5432/chorely
       OPENROUTER_API_KEY: ${OPENROUTER_API_KEY:-}
       OLLAMA_BASE_URL: ${OLLAMA_BASE_URL:-http://host.docker.internal:11434}
     depends_on:

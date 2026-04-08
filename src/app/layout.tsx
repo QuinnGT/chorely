@@ -17,13 +17,13 @@ const beVietnam = Be_Vietnam_Pro({
 });
 
 export const metadata: Metadata = {
-  title: 'Family Share',
+  title: 'Chorely',
   description: 'A family chore dashboard with allowance tracking and voice assistant',
   manifest: '/manifest.json',
   appleWebApp: {
     capable: true,
     statusBarStyle: 'default',
-    title: 'Family Share',
+    title: 'Chorely',
   },
 };
 

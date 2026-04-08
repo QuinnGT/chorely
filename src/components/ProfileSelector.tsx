@@ -95,7 +95,7 @@ export function ProfileSelector({ onSelectKid, onParentTap, onAddMember }: Profi
 
       <header className="relative z-10 mb-6 text-center">
         <h1 className="font-headline font-black text-4xl md:text-6xl tracking-tighter text-transparent bg-clip-text bg-gradient-to-r from-primary to-primary-container mb-2">
-          Family Share
+          Chorely
         </h1>
         <p className="font-label text-on-surface-variant text-lg font-medium">
           Who&apos;s playing today?
@@ -233,7 +233,7 @@ export function ProfileSelector({ onSelectKid, onParentTap, onAddMember }: Profi
       </div>
 
       <footer className="relative z-10 mt-6 opacity-50">
-        <p className="font-label text-sm text-on-surface-variant">© 2024 Family Share • Safe Playground Mode</p>
+        <p className="font-label text-sm text-on-surface-variant">© 2025 Chorely • Safe Playground Mode</p>
       </footer>
     </div>
   );

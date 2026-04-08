@@ -36,10 +36,7 @@ export function Header({ kid, onSwitchProfile, onSettingsTap }: HeaderProps) {
       <Link href="/dashboard" className="flex-shrink-0">
         <h1 className="font-headline font-extrabold text-2xl tracking-tight">
           <span className="bg-gradient-to-r from-cyan-600 to-cyan-400 bg-clip-text text-transparent">
-            Family
-          </span>
-          <span className="bg-gradient-to-r from-cyan-600 to-cyan-400 bg-clip-text text-transparent">
-            {' '}Share
+            Chorely
           </span>
         </h1>
       </Link>

@@ -157,7 +157,7 @@ export function CelebrationOverlay({
 
       <nav className="fixed top-0 w-full z-10 flex justify-center items-center px-6 py-4">
         <span className="text-2xl font-black bg-gradient-to-br from-cyan-600 to-cyan-400 bg-clip-text text-transparent font-headline">
-          Family Share
+          Chorely
         </span>
       </nav>
 

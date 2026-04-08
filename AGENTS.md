@@ -4,7 +4,7 @@ Guidance for AI coding agents working in this repository.
 
 ## Project Overview
 
-Family Command Center -- a Next.js 16 app (App Router) for managing kids' chores, allowances, savings goals, and a reward store. PWA designed mobile-first for iPad/tablet. Stack: React 19, TypeScript (strict), Drizzle ORM with PostgreSQL, Tailwind CSS v4, Vitest, Zod validation, AI SDK (OpenRouter/Ollama).
+Chorely -- a Next.js 16 app (App Router) for managing kids' chores, allowances, savings goals, and a reward store. PWA designed mobile-first for iPad/tablet. Stack: React 19, TypeScript (strict), Drizzle ORM with PostgreSQL, Tailwind CSS v4, Vitest, Zod validation, AI SDK (OpenRouter/Ollama).
 
 ## Environment Variables
 
