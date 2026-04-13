@@ -88,25 +88,70 @@ export function ProfileSelector({ onSelectKid, onParentTap, onAddMember }: Profi
   }
 
   return (
-    <div className="relative flex min-h-screen flex-col items-center justify-center p-6 overflow-hidden">
-      <div className="absolute -top-24 -left-24 w-96 h-96 rounded-full blur-[100px]" style={{ backgroundColor: 'var(--primary-container)', opacity: 0.3 }} />
-      <div className="absolute -bottom-24 -right-24 w-96 h-96 rounded-full blur-[100px]" style={{ backgroundColor: 'var(--secondary-container)', opacity: 0.3 }} />
-      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full h-full bg-gradient-to-br from-primary-container/10 via-[var(--surface)] to-secondary-container/10 z-0" />
+    <div
+      className="relative flex min-h-screen w-full flex-col items-center justify-center overflow-x-clip"
+      style={{
+        padding: 'clamp(1rem, 4vw, 4rem)',
+        background:
+          'linear-gradient(135deg, var(--primary-container) 0%, var(--surface) 45%, var(--secondary-container) 100%)',
+      }}
+    >
+      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+        <div className="absolute -top-24 -left-24 w-96 h-96 rounded-full blur-[100px]" style={{ backgroundColor: 'var(--primary-container)', opacity: 0.6 }} />
+        <div className="absolute -bottom-24 -right-24 w-96 h-96 rounded-full blur-[100px]" style={{ backgroundColor: 'var(--secondary-container)', opacity: 0.6 }} />
+      </div>
 
-      <header className="relative z-10 mb-6 text-center">
-        <h1 className="font-headline font-black text-4xl md:text-6xl tracking-tighter text-transparent bg-clip-text bg-gradient-to-r from-primary to-primary-container mb-2">
+      <header className="relative z-10 text-center" style={{ marginBottom: 'clamp(1rem, 2vw, 1.5rem)' }}>
+        <h1
+          className="font-headline font-black tracking-tighter text-transparent bg-clip-text bg-gradient-to-r from-primary to-primary-container mb-2"
+          style={{ fontSize: 'clamp(2rem, 5vw + 0.5rem, 3.5rem)', lineHeight: 1.1 }}
+        >
           Chorely
         </h1>
-        <p className="font-label text-on-surface-variant text-lg font-medium">
+        <p
+          className="font-label text-on-surface-variant font-medium"
+          style={{ fontSize: 'clamp(0.875rem, 1vw + 0.5rem, 1.125rem)' }}
+        >
           Who&apos;s playing today?
         </p>
       </header>
 
-      <div 
-        className="relative z-10 w-full max-w-[1024px] p-8 md:p-16 rounded-xl"
-        style={{ background: 'var(--glass-bg)', backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)', boxShadow: 'var(--glass-shadow)', border: '1px solid var(--glass-border)' }}
+      <div
+        className="relative z-10 w-full profile-card-wrap"
+        style={{ maxWidth: 'min(100%, 52rem)', containerType: 'inline-size' }}
       >
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-6 md:gap-8 mb-8 w-full">
+        <div className="profile-chip profile-chip-tr absolute rotate-12 z-20" style={{ top: '-0.75rem', right: 'clamp(-1rem, -2vw, -2.5rem)' }}>
+          <div
+            className="font-headline font-bold shadow-lg text-white"
+            style={{ backgroundColor: 'var(--tertiary)', padding: 'clamp(0.5rem, 0.5vw + 0.4rem, 0.75rem) clamp(1rem, 1vw + 0.75rem, 1.5rem)', borderRadius: '9999px', fontSize: 'clamp(0.75rem, 0.5vw + 0.625rem, 1rem)' }}
+          >
+            Goals Reached!
+          </div>
+        </div>
+        <div className="profile-chip profile-chip-bl absolute -rotate-6 z-20" style={{ bottom: '-1rem', left: 'clamp(-1rem, -2vw, -2.5rem)' }}>
+          <div
+            className="font-headline font-bold shadow-lg text-white"
+            style={{ backgroundColor: 'var(--primary)', padding: 'clamp(0.5rem, 0.5vw + 0.4rem, 0.75rem) clamp(1rem, 1vw + 0.75rem, 1.5rem)', borderRadius: '9999px', fontSize: 'clamp(0.75rem, 0.5vw + 0.625rem, 1rem)' }}
+          >
+            Chore Champ
+          </div>
+        </div>
+
+        <div
+          className="rounded-3xl"
+          style={{
+            padding: 'clamp(1.5rem, 2vw + 1rem, 3.5rem)',
+            background: 'var(--glass-bg)',
+            backdropFilter: 'blur(20px)',
+            WebkitBackdropFilter: 'blur(20px)',
+            boxShadow: 'var(--glass-shadow)',
+            border: '1px solid var(--glass-border)',
+          }}
+        >
+        <div
+          className="flex flex-wrap justify-center w-full"
+          style={{ gap: 'clamp(1rem, 2vw, 2rem)', marginBottom: 'clamp(1.5rem, 3vw, 2.5rem)' }}
+        >
           {kids.map((kid, index) => (
             <button
               key={kid.id}
@@ -124,8 +169,12 @@ export function ProfileSelector({ onSelectKid, onParentTap, onAddMember }: Profi
                 return (
                   <>
                     <div
-                      className="relative w-28 h-28 md:w-40 md:h-40 rounded-full p-1.5 transition-shadow"
-                      style={{ background: `linear-gradient(135deg, ${g.ringFrom}, ${g.ringTo})` }}
+                      className="relative rounded-full p-1.5 transition-shadow"
+                      style={{
+                        width: 'clamp(5rem, 8vw + 2rem, 9rem)',
+                        height: 'clamp(5rem, 8vw + 2rem, 9rem)',
+                        background: `linear-gradient(135deg, ${g.ringFrom}, ${g.ringTo})`,
+                      }}
                       onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.boxShadow = `0 0 30px ${glow}`; }}
                       onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.boxShadow = 'none'; }}
                     >
@@ -141,8 +190,8 @@ export function ProfileSelector({ onSelectKid, onParentTap, onAddMember }: Profi
                           />
                         ) : (
                           <div
-                            className="w-full h-full flex items-center justify-center text-4xl md:text-5xl font-bold text-white"
-                            style={{ backgroundColor: kid.themeColor || 'var(--primary)' }}
+                            className="w-full h-full flex items-center justify-center font-bold text-white"
+                            style={{ backgroundColor: kid.themeColor || 'var(--primary)', fontSize: 'clamp(1.5rem, 3vw + 0.5rem, 2.5rem)' }}
                           >
                             {kid.name.charAt(0).toUpperCase()}
                           </div>
@@ -150,7 +199,8 @@ export function ProfileSelector({ onSelectKid, onParentTap, onAddMember }: Profi
                       </div>
                     </div>
                     <span
-                      className="font-headline text-xl md:text-2xl font-bold text-on-surface group-hover:text-primary transition-colors"
+                      className="font-headline font-bold text-on-surface group-hover:text-primary transition-colors"
+                      style={{ fontSize: 'clamp(1rem, 1vw + 0.75rem, 1.35rem)' }}
                     >
                       {kid.name}
                     </span>
@@ -169,66 +219,59 @@ export function ProfileSelector({ onSelectKid, onParentTap, onAddMember }: Profi
               animationFillMode: 'forwards',
             }}
           >
-            <div 
-              className="relative w-28 h-28 md:w-40 md:h-40 rounded-full p-1.5 group-hover:bg-error-container transition-colors"
-              style={{ backgroundColor: 'var(--surface-container-highest)' }}
+            <div
+              className="relative rounded-full p-1.5 group-hover:bg-error-container transition-colors"
+              style={{
+                width: 'clamp(5rem, 8vw + 2rem, 9rem)',
+                height: 'clamp(5rem, 8vw + 2rem, 9rem)',
+                backgroundColor: 'var(--surface-container-highest)',
+              }}
             >
-              <div 
+              <div
                 className="w-full h-full rounded-full flex items-center justify-center border-4 shadow-inner"
                 style={{ backgroundColor: 'var(--surface-container-lowest)', borderColor: 'var(--surface-container-lowest)' }}
               >
                 <span
-                  className="material-symbols-outlined text-4xl md:text-6xl text-outline-variant group-hover:text-white transition-colors"
-                  style={{ fontVariationSettings: "'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24" }}
+                  className="material-symbols-outlined text-outline-variant group-hover:text-white transition-colors"
+                  style={{ fontSize: 'clamp(2rem, 3vw + 1rem, 3.25rem)', fontVariationSettings: "'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24" }}
                 >
                   add
                 </span>
               </div>
             </div>
-            <span className="font-headline text-xl md:text-2xl font-bold text-on-surface-variant">Add</span>
+            <span
+              className="font-headline font-bold text-on-surface-variant"
+              style={{ fontSize: 'clamp(1rem, 1vw + 0.75rem, 1.35rem)' }}
+            >
+              Add
+            </span>
           </button>
         </div>
 
-        <div className="w-full flex justify-center pt-6" style={{ borderTop: '1px solid var(--outline-variant)' }}>
-          <button 
+        <div className="w-full flex justify-center pt-5" style={{ borderTop: '1px solid var(--outline-variant)' }}>
+          <button
             type="button"
             onClick={onParentTap}
-            className="flex items-center gap-3 px-8 py-5 rounded-full shadow-sm hover:shadow-md transition-all active:scale-[0.98]"
+            className="flex items-center gap-3 px-6 py-3 rounded-full shadow-sm hover:shadow-md transition-all active:scale-[0.98]"
             style={{ background: 'var(--surface-container-low)' }}
           >
-            <div 
-              className="w-10 h-10 rounded-full flex items-center justify-center"
+            <div
+              className="w-9 h-9 rounded-full flex items-center justify-center"
               style={{ backgroundColor: 'var(--secondary-container)', color: 'var(--on-secondary-container)' }}
             >
-              <span 
-                className="material-symbols-outlined text-xl"
+              <span
+                className="material-symbols-outlined text-lg"
                 style={{ fontVariationSettings: "'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 24" }}
               >
                 lock
               </span>
             </div>
             <div className="text-left">
-              <p className="font-label text-xs uppercase tracking-widest text-on-surface-variant font-bold">Admin Access</p>
-              <p className="font-headline text-lg font-bold text-on-surface">Parent Dashboard</p>
+              <p className="font-label text-[10px] uppercase tracking-widest text-on-surface-variant font-bold">Admin Access</p>
+              <p className="font-headline text-base font-bold text-on-surface">Parent Dashboard</p>
             </div>
           </button>
         </div>
-      </div>
-
-      <div className="hidden lg:block absolute -top-4 -right-12 rotate-12 z-20">
-        <div 
-          className="px-6 py-3 rounded-full font-headline font-bold shadow-lg text-white"
-          style={{ backgroundColor: 'var(--tertiary)' }}
-        >
-          Goals Reached!
-        </div>
-      </div>
-      <div className="hidden lg:block absolute -bottom-8 -left-12 -rotate-6 z-20">
-        <div 
-          className="px-6 py-3 rounded-full font-headline font-bold shadow-lg text-white"
-          style={{ backgroundColor: 'var(--primary)' }}
-        >
-          Chore Champ
         </div>
       </div>
 

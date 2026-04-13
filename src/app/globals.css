@@ -522,6 +522,15 @@
   animation: card-entrance var(--anim-pop) ease-out forwards;
 }
 
+.profile-chip {
+  display: none;
+}
+@container (min-width: 34rem) {
+  .profile-chip {
+    display: block;
+  }
+}
+
 .animate-coin-rise {
   animation: coin-rise 600ms ease-out forwards;
 }
