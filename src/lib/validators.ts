@@ -166,6 +166,7 @@ export const kidVoiceSettingsSchema = z.object({
 });
 
 export const globalVoiceSettingsSchema = z.object({
+  enabled: z.boolean().default(true),
   defaultWakePhrase: z.string().regex(wakePhraseRegex, wakePhraseMessage),
   defaultProviderId: providerIdEnum,
   volume: z.number().int().min(0).max(100),

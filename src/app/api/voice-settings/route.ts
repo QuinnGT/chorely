@@ -9,6 +9,7 @@ import type { KidVoiceSettingsInput, GlobalVoiceSettingsInput } from '@/lib/vali
 // ─── Defaults ───────────────────────────────────────────────────────────────
 
 const GLOBAL_DEFAULTS: GlobalVoiceSettingsInput = {
+  enabled: true,
   defaultWakePhrase: 'Hey Family',
   defaultProviderId: 'web-speech',
   volume: 80,
@@ -50,7 +51,9 @@ interface ParsedSettings {
 function buildSettingsFromRows(rows: { key: string; value: string }[]): ParsedSettings {
   const map = new Map(rows.map((r) => [r.key, r.value]));
 
+  const enabledRaw = map.get('voice.global.enabled');
   const global: GlobalVoiceSettingsInput = {
+    enabled: enabledRaw === undefined ? GLOBAL_DEFAULTS.enabled : enabledRaw === 'true',
     defaultWakePhrase: map.get('voice.global.defaultWakePhrase') ?? GLOBAL_DEFAULTS.defaultWakePhrase,
     defaultProviderId: (map.get('voice.global.defaultProviderId') ?? GLOBAL_DEFAULTS.defaultProviderId) as GlobalVoiceSettingsInput['defaultProviderId'],
     volume: Number(map.get('voice.global.volume') ?? GLOBAL_DEFAULTS.volume),
@@ -114,6 +117,7 @@ export async function PUT(request: Request): Promise<NextResponse> {
     const validated = voiceSettingsSchema.parse(body);
 
     const entries: { key: string; value: string }[] = [
+      { key: 'voice.global.enabled', value: String(validated.global.enabled) },
       { key: 'voice.global.defaultWakePhrase', value: validated.global.defaultWakePhrase },
       { key: 'voice.global.defaultProviderId', value: validated.global.defaultProviderId },
       { key: 'voice.global.volume', value: String(validated.global.volume) },

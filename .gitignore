@@ -57,3 +57,4 @@ next-env.d.ts
 *.png
 !public/**/*.png
 mockups/
+certificates

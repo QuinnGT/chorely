@@ -20,7 +20,7 @@ export default function DashboardPage() {
   const { selectedKid, isHydrated } = useKid();
 
   const [voiceSettingsRaw, setVoiceSettingsRaw] = useState<{
-    global?: { defaultWakePhrase?: string; defaultProviderId?: string; volume?: number };
+    global?: { enabled?: boolean; defaultWakePhrase?: string; defaultProviderId?: string; volume?: number };
     perKid?: Record<string, { enabled?: boolean; wakePhrase?: string; providerId?: string; elevenlabsVoiceId?: string; speechOutput?: boolean }>;
     availableProviders?: string[];
   } | null>(null);
@@ -226,16 +226,18 @@ export default function DashboardPage() {
       </ErrorBoundary>
 
       {/* Voice Assistant */}
-      <ErrorBoundary>
-        <VoiceAssistant
-          kidId={selectedKid.id}
-          kidName={selectedKid.name}
-          assignedChores={voiceAssistantChores}
-          voiceSettings={voiceSettings}
-          onChoreCompleted={handleChoreCompletedViaVoice}
-          onSavingsGoalAdded={() => {}}
-        />
-      </ErrorBoundary>
+      {voiceSettingsRaw?.global?.enabled !== false && (
+        <ErrorBoundary>
+          <VoiceAssistant
+            kidId={selectedKid.id}
+            kidName={selectedKid.name}
+            assignedChores={voiceAssistantChores}
+            voiceSettings={voiceSettings}
+            onChoreCompleted={handleChoreCompletedViaVoice}
+            onSavingsGoalAdded={() => {}}
+          />
+        </ErrorBoundary>
+      )}
     </div>
   );
 }

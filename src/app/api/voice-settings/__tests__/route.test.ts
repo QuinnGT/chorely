@@ -38,6 +38,7 @@ beforeEach(() => {
 
 const validPayload = {
   global: {
+    enabled: true,
     defaultWakePhrase: 'Hey Family',
     defaultProviderId: 'web-speech' as const,
     volume: 80,
@@ -57,6 +58,7 @@ describe('GET /api/voice-settings', () => {
     const body = await response.json();
     expect(body).toEqual({
       global: {
+        enabled: true,
         defaultWakePhrase: 'Hey Family',
         defaultProviderId: 'web-speech',
         volume: 80,
@@ -78,6 +80,7 @@ describe('GET /api/voice-settings', () => {
     expect(response.status).toBe(200);
     const body = await response.json();
     expect(body.global).toEqual({
+      enabled: true,
       defaultWakePhrase: 'Hello Home',
       defaultProviderId: 'elevenlabs',
       volume: 60,
@@ -118,6 +121,7 @@ describe('GET /api/voice-settings', () => {
     expect(response.status).toBe(200);
     const body = await response.json();
     expect(body.global).toEqual({
+      enabled: true,
       defaultWakePhrase: 'Ok House',
       defaultProviderId: 'web-speech',
       volume: 80,
@@ -173,8 +177,8 @@ describe('PUT /api/voice-settings', () => {
     const body = await response.json();
     expect(body.global).toEqual(validPayload.global);
     expect(body.perKid).toEqual({});
-    // 3 global entries
-    expect(mockInsert).toHaveBeenCalledTimes(3);
+    // 4 global entries
+    expect(mockInsert).toHaveBeenCalledTimes(4);
   });
 
   test('saves per-kid settings alongside global settings', async () => {
@@ -205,8 +209,8 @@ describe('PUT /api/voice-settings', () => {
     const body = await response.json();
     expect(body.perKid[KID_ID].providerId).toBe('elevenlabs');
     expect(body.perKid[KID_ID].elevenlabsVoiceId).toBe('21m00Tcm4TlvDq8ikWAM');
-    // 3 global + 6 per-kid = 9
-    expect(mockInsert).toHaveBeenCalledTimes(9);
+    // 4 global + 6 per-kid = 10
+    expect(mockInsert).toHaveBeenCalledTimes(10);
   });
 
   test('returns 400 with field errors for invalid wake phrase (single word)', async () => {

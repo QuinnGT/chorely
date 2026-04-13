@@ -21,6 +21,7 @@ interface KidVoiceSettings {
 }
 
 interface GlobalVoiceSettings {
+  enabled: boolean;
   defaultWakePhrase: string;
   defaultProviderId: string;
   volume: number;
@@ -42,6 +43,7 @@ const DEFAULT_KID_SETTINGS: KidVoiceSettings = {
 };
 
 const DEFAULT_GLOBAL: GlobalVoiceSettings = {
+  enabled: true,
   defaultWakePhrase: 'Hey Family',
   defaultProviderId: 'web-speech',
   volume: 80,
@@ -446,6 +448,7 @@ export function VoiceSettingsForm() {
         const voiceData = await settingsRes.json();
         if (voiceData.global) {
           setGlobalSettings({
+            enabled: voiceData.global.enabled ?? DEFAULT_GLOBAL.enabled,
             defaultWakePhrase: voiceData.global.defaultWakePhrase ?? DEFAULT_GLOBAL.defaultWakePhrase,
             defaultProviderId: voiceData.global.defaultProviderId ?? DEFAULT_GLOBAL.defaultProviderId,
             volume: voiceData.global.volume ?? DEFAULT_GLOBAL.volume,
@@ -602,7 +605,33 @@ export function VoiceSettingsForm() {
         </h2>
       </div>
 
+      {/* Master Enable Toggle */}
+      <div
+        className="glass-card flex items-center justify-between gap-4 rounded-[3rem] p-6"
+        style={{ background: 'var(--surface-container-lowest)' }}
+      >
+        <div className="flex flex-col gap-1">
+          <span className="text-base font-semibold" style={{ color: 'var(--on-surface)' }}>
+            Enable Voice Assistant
+          </span>
+          <p className="text-xs" style={{ color: 'var(--on-surface-variant)' }}>
+            Turn off to hide the microphone everywhere — useful on platforms like iPad where speech recognition is unreliable.
+          </p>
+        </div>
+        <ToggleSwitch
+          id="voice-master-enabled"
+          checked={globalSettings.enabled}
+          onChange={(v) => {
+            setSuccessMsg(null);
+            setSaveError(null);
+            setGlobalSettings((prev) => ({ ...prev, enabled: v }));
+          }}
+          label="Enable voice assistant globally"
+        />
+      </div>
+
       {/* Per-Kid Section */}
+      {globalSettings.enabled && (
       <div className="flex flex-col gap-5">
         <h3
           className="font-headline text-lg font-semibold"
@@ -639,6 +668,7 @@ export function VoiceSettingsForm() {
           ))
         )}
       </div>
+      )}
 
       {/* Global Settings */}
       <div
