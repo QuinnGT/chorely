@@ -29,9 +29,19 @@ COPY --from=builder /app/public ./public
 COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
 COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
 
+# Migrator: drizzle-kit lives in devDependencies and isn't in the standalone
+# bundle, so ship a parallel /migrator dir with full deps + schema for startup `push`.
+COPY --from=deps --chown=nextjs:nodejs /app/node_modules /migrator/node_modules
+COPY --from=builder --chown=nextjs:nodejs /app/package.json /migrator/package.json
+COPY --from=builder --chown=nextjs:nodejs /app/drizzle.config.ts /migrator/drizzle.config.ts
+COPY --from=builder --chown=nextjs:nodejs /app/src/db/schema.ts /migrator/src/db/schema.ts
+
+COPY --chown=nextjs:nodejs docker-entrypoint.sh /docker-entrypoint.sh
+RUN chmod +x /docker-entrypoint.sh
+
 USER nextjs
 EXPOSE 3000
 ENV PORT=3000
 ENV HOSTNAME="0.0.0.0"
 
-CMD ["node", "server.js"]
+CMD ["/docker-entrypoint.sh"]
