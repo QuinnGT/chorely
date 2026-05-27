@@ -18,8 +18,14 @@ export const AVATAR_STYLES = [
   { id: 'watercolor', label: 'Watercolor' },
 ] as const;
 
+export const AVATAR_QUALITIES = [
+  { id: 'fast', label: 'Fast', hint: '~5s, lower fidelity' },
+  { id: 'quality', label: 'Quality', hint: 'Slower, sharper' },
+] as const;
+
 export type PresetId = (typeof AVATAR_PRESETS)[number]['id'];
 export type StyleId = (typeof AVATAR_STYLES)[number]['id'];
+export type QualityId = (typeof AVATAR_QUALITIES)[number]['id'];
 
 const PRESET_DESCRIPTIONS: Record<PresetId, string> = {
   astronaut: 'a brave young astronaut in a space helmet',
@@ -51,4 +57,8 @@ export function isValidPreset(id: string): id is PresetId {
 
 export function isValidStyle(id: string): id is StyleId {
   return AVATAR_STYLES.some((s) => s.id === id);
+}
+
+export function isValidQuality(id: string): id is QualityId {
+  return AVATAR_QUALITIES.some((q) => q.id === id);
 }

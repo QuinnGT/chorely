@@ -3,8 +3,10 @@
 import { useState } from 'react';
 import {
   AVATAR_PRESETS,
+  AVATAR_QUALITIES,
   AVATAR_STYLES,
   type PresetId,
+  type QualityId,
   type StyleId,
 } from '@/lib/avatar-presets';
 
@@ -16,6 +18,7 @@ interface Props {
 export function GenerateAvatarModal({ onClose, onSave }: Props) {
   const [preset, setPreset] = useState<PresetId>('astronaut');
   const [style, setStyle] = useState<StyleId>('cartoon');
+  const [quality, setQuality] = useState<QualityId>('fast');
   const [isGenerating, setIsGenerating] = useState(false);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -27,7 +30,7 @@ export function GenerateAvatarModal({ onClose, onSave }: Props) {
       const res = await fetch('/api/avatars/generate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ preset, style }),
+        body: JSON.stringify({ preset, style, quality }),
       });
       if (!res.ok) {
         const err = await res.json().catch(() => ({ error: 'Generation failed' }));
@@ -138,6 +141,40 @@ export function GenerateAvatarModal({ onClose, onSave }: Props) {
                   }}
                 >
                   {s.label}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        <div className="mb-6">
+          <div
+            className="mb-2 text-sm font-medium"
+            style={{ color: 'var(--on-surface-variant)' }}
+          >
+            Speed
+          </div>
+          <div className="flex flex-wrap gap-2">
+            {AVATAR_QUALITIES.map((q) => {
+              const selected = quality === q.id;
+              return (
+                <button
+                  key={q.id}
+                  type="button"
+                  onClick={() => setQuality(q.id)}
+                  className="rounded-full px-3 py-1.5 text-sm font-medium transition-transform active:scale-95"
+                  style={{
+                    background: selected
+                      ? 'var(--primary)'
+                      : 'var(--surface-container-low)',
+                    color: selected ? 'var(--on-primary)' : 'var(--on-surface-variant)',
+                    border: selected
+                      ? '1px solid var(--primary)'
+                      : '1px solid var(--outline-variant)',
+                  }}
+                  title={q.hint}
+                >
+                  {q.label}
                 </button>
               );
             })}
