@@ -6,7 +6,9 @@ import { uploads } from '@/db/schema';
 import { buildAvatarPrompt, isValidPreset, isValidStyle } from '@/lib/avatar-presets';
 
 const DEFAULT_MODEL = 'openai/gpt-5.4-image-2';
-const REQUEST_TIMEOUT_MS = 90_000;
+const REQUEST_TIMEOUT_MS = 240_000;
+
+export const maxDuration = 300;
 
 export async function POST(request: Request): Promise<NextResponse> {
   const apiKey = process.env.OPENROUTER_API_KEY;
