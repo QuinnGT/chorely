@@ -1,9 +1,12 @@
 import { NextResponse } from 'next/server';
+import { generateImage } from 'ai';
+import { createOpenRouter } from '@openrouter/ai-sdk-provider';
 import { db } from '@/db';
 import { uploads } from '@/db/schema';
 import { buildAvatarPrompt, isValidPreset, isValidStyle } from '@/lib/avatar-presets';
 
 const DEFAULT_MODEL = 'openai/gpt-5.4-image-2';
+const REQUEST_TIMEOUT_MS = 90_000;
 
 export async function POST(request: Request): Promise<NextResponse> {
   const apiKey = process.env.OPENROUTER_API_KEY;
@@ -29,40 +32,52 @@ export async function POST(request: Request): Promise<NextResponse> {
     }
 
     const prompt = buildAvatarPrompt(preset, style);
-    const model = process.env.AVATAR_MODEL || DEFAULT_MODEL;
+    const modelId = process.env.AVATAR_MODEL || DEFAULT_MODEL;
 
-    const res = await fetch('https://openrouter.ai/api/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${apiKey}`,
-      },
-      body: JSON.stringify({
-        model,
-        modalities: ['image', 'text'],
-        messages: [{ role: 'user', content: prompt }],
-      }),
+    console.log('[avatar-gen] start', { model: modelId, preset, style });
+    const startedAt = Date.now();
+
+    const openrouter = createOpenRouter({ apiKey });
+
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
+
+    let result;
+    try {
+      result = await generateImage({
+        model: openrouter.imageModel(modelId),
+        prompt,
+        abortSignal: controller.signal,
+      });
+    } catch (err: unknown) {
+      const aborted = err instanceof Error && err.name === 'AbortError';
+      console.error('[avatar-gen] generateImage failed', {
+        ms: Date.now() - startedAt,
+        aborted,
+        error: err instanceof Error ? err.message : String(err),
+        stack: err instanceof Error ? err.stack : undefined,
+      });
+      return NextResponse.json(
+        { error: aborted ? 'Generation timed out' : 'Image generation failed' },
+        { status: aborted ? 504 : 502 },
+      );
+    } finally {
+      clearTimeout(timeoutId);
+    }
+
+    const elapsed = Date.now() - startedAt;
+    const image = result.image;
+    const buffer = Buffer.from(image.uint8Array);
+    const mimeType =
+      (image as { mediaType?: string }).mediaType ??
+      (image as { mimeType?: string }).mimeType ??
+      'image/png';
+
+    console.log('[avatar-gen] success', {
+      ms: elapsed,
+      bytes: buffer.length,
+      mimeType,
     });
-
-    if (!res.ok) {
-      const text = await res.text();
-      console.error('OpenRouter error:', res.status, text);
-      return NextResponse.json({ error: 'Image generation failed' }, { status: 502 });
-    }
-
-    const json = await res.json();
-    const dataUrl: unknown = json?.choices?.[0]?.message?.images?.[0]?.image_url?.url;
-    if (typeof dataUrl !== 'string' || !dataUrl.startsWith('data:image/')) {
-      console.error('No image in response:', JSON.stringify(json).slice(0, 500));
-      return NextResponse.json({ error: 'No image returned' }, { status: 502 });
-    }
-
-    const match = dataUrl.match(/^data:(image\/[^;]+);base64,(.+)$/);
-    if (!match) {
-      return NextResponse.json({ error: 'Malformed image data' }, { status: 502 });
-    }
-    const mimeType = match[1];
-    const buffer = Buffer.from(match[2], 'base64');
 
     const [row] = await db
       .insert(uploads)
@@ -71,7 +86,7 @@ export async function POST(request: Request): Promise<NextResponse> {
 
     return NextResponse.json({ url: `/api/uploads/${row.id}` }, { status: 201 });
   } catch (error: unknown) {
-    console.error('Avatar generation error:', error);
+    console.error('[avatar-gen] uncaught error', error);
     return NextResponse.json({ error: 'Failed to generate avatar' }, { status: 500 });
   }
 }
