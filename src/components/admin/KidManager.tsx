@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { resizeImage } from '@/lib/resize-image';
+import { GenerateAvatarModal } from './GenerateAvatarModal';
 
 interface KidRecord {
   id: string;
@@ -38,6 +39,7 @@ export function KidManager() {
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
+  const [showGenerator, setShowGenerator] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const fetchKids = useCallback(async () => {
@@ -493,6 +495,18 @@ export function KidManager() {
                   >
                     {isUploading ? 'Uploading...' : formData.avatarUrl ? 'Change Photo' : 'Upload Photo'}
                   </button>
+                  <button
+                    type="button"
+                    onClick={() => setShowGenerator(true)}
+                    className="rounded-full px-4 py-2 text-sm font-semibold transition-transform active:scale-95"
+                    style={{
+                      background: 'var(--surface-container-low)',
+                      color: 'var(--on-surface-variant)',
+                      border: '1px solid var(--outline-variant)',
+                    }}
+                  >
+                    ✨ Generate
+                  </button>
                   {formData.avatarUrl && (
                     <button
                       type="button"
@@ -573,6 +587,13 @@ export function KidManager() {
             </div>
           </div>
         </div>
+      )}
+
+      {showGenerator && (
+        <GenerateAvatarModal
+          onClose={() => setShowGenerator(false)}
+          onSave={(url) => setFormData((prev) => ({ ...prev, avatarUrl: url }))}
+        />
       )}
     </div>
   );
