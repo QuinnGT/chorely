@@ -3,21 +3,17 @@ import { generateImage } from 'ai';
 import { createOpenRouter } from '@openrouter/ai-sdk-provider';
 import { db } from '@/db';
 import { uploads } from '@/db/schema';
-import {
-  buildAvatarPrompt,
-  isValidPreset,
-  isValidQuality,
-  isValidStyle,
-  type QualityId,
-} from '@/lib/avatar-presets';
+import { buildStoreItemPrompt } from '@/lib/store-item-prompt';
 
 const DEFAULT_FAST_MODEL = 'google/gemini-2.5-flash-image';
 const DEFAULT_QUALITY_MODEL = 'openai/gpt-5.4-image-2';
 const REQUEST_TIMEOUT_MS = 240_000;
+const VALID_CATEGORIES = ['toys', 'games', 'experiences', 'books'] as const;
+type Category = (typeof VALID_CATEGORIES)[number];
 
 export const maxDuration = 300;
 
-function resolveModel(quality: QualityId): string {
+function resolveModel(quality: 'fast' | 'quality'): string {
   if (quality === 'fast') {
     return process.env.AVATAR_MODEL_FAST || DEFAULT_FAST_MODEL;
   }
@@ -128,10 +124,11 @@ async function generateViaImageOnly(
   return { buffer: Buffer.from(match[2], 'base64'), mimeType: match[1] };
 }
 
-function isUnsupportedModalitiesError(err: unknown): boolean {
+function shouldRetryViaImageOnly(err: unknown): boolean {
+  if (!(err instanceof Error)) return false;
   return (
-    err instanceof Error &&
-    err.message.includes('No endpoints found that support the requested output modalities')
+    err.message.includes('No endpoints found that support the requested output modalities') ||
+    err.message.includes('No image generated')
   );
 }
 
@@ -139,6 +136,10 @@ const IMAGE_ONLY_MODEL_PREFIXES = ['x-ai/grok-imagine'];
 
 function isImageOnlyModel(modelId: string): boolean {
   return IMAGE_ONLY_MODEL_PREFIXES.some((prefix) => modelId.startsWith(prefix));
+}
+
+function isValidCategory(value: unknown): value is Category {
+  return typeof value === 'string' && (VALID_CATEGORIES as readonly string[]).includes(value);
 }
 
 export async function POST(request: Request): Promise<NextResponse> {
@@ -155,25 +156,37 @@ export async function POST(request: Request): Promise<NextResponse> {
     if (typeof body !== 'object' || !body) {
       return NextResponse.json({ error: 'Invalid body' }, { status: 400 });
     }
-    const { preset, style, quality } = body as {
-      preset?: unknown;
-      style?: unknown;
+    const { name, description, category, quality } = body as {
+      name?: unknown;
+      description?: unknown;
+      category?: unknown;
       quality?: unknown;
     };
 
-    if (typeof preset !== 'string' || !isValidPreset(preset)) {
-      return NextResponse.json({ error: 'Invalid preset' }, { status: 400 });
+    if (typeof name !== 'string' || name.trim().length === 0) {
+      return NextResponse.json({ error: 'Item name is required' }, { status: 400 });
     }
-    if (typeof style !== 'string' || !isValidStyle(style)) {
-      return NextResponse.json({ error: 'Invalid style' }, { status: 400 });
+    if (name.length > 120) {
+      return NextResponse.json({ error: 'Item name is too long' }, { status: 400 });
     }
-    const qualityId: QualityId =
-      typeof quality === 'string' && isValidQuality(quality) ? quality : 'fast';
+    if (description !== undefined && typeof description !== 'string') {
+      return NextResponse.json({ error: 'Invalid description' }, { status: 400 });
+    }
+    if (typeof description === 'string' && description.length > 500) {
+      return NextResponse.json({ error: 'Description is too long' }, { status: 400 });
+    }
 
-    const prompt = buildAvatarPrompt(preset, style);
+    const qualityId: 'fast' | 'quality' = quality === 'quality' ? 'quality' : 'fast';
+    const categoryId = isValidCategory(category) ? category : undefined;
+
+    const prompt = buildStoreItemPrompt({
+      name,
+      description: typeof description === 'string' ? description : undefined,
+      category: categoryId,
+    });
     const modelId = resolveModel(qualityId);
 
-    console.log('[avatar-gen] start', { model: modelId, preset, style, quality: qualityId });
+    console.log('[store-item-image] start', { model: modelId, name, quality: qualityId });
     const startedAt = Date.now();
 
     const controller = new AbortController();
@@ -187,9 +200,10 @@ export async function POST(request: Request): Promise<NextResponse> {
         try {
           generated = await generateViaSdk(apiKey, modelId, prompt, controller.signal);
         } catch (err: unknown) {
-          if (isUnsupportedModalitiesError(err)) {
-            console.log('[avatar-gen] sdk path rejected modalities, retrying image-only', {
+          if (shouldRetryViaImageOnly(err)) {
+            console.log('[store-item-image] sdk path failed, retrying via image-only endpoint', {
               model: modelId,
+              reason: err instanceof Error ? err.message : String(err),
             });
             generated = await generateViaImageOnly(apiKey, modelId, prompt, controller.signal);
           } else {
@@ -199,21 +213,30 @@ export async function POST(request: Request): Promise<NextResponse> {
       }
     } catch (err: unknown) {
       const aborted = err instanceof Error && err.name === 'AbortError';
-      console.error('[avatar-gen] generation failed', {
+      const errMessage = err instanceof Error ? err.message : String(err);
+      const filtered =
+        errMessage.includes('No image generated') ||
+        errMessage.includes('No image in response');
+      console.error('[store-item-image] generation failed', {
         ms: Date.now() - startedAt,
         aborted,
-        error: err instanceof Error ? err.message : String(err),
+        error: errMessage,
         stack: err instanceof Error ? err.stack : undefined,
       });
+      const userMessage = aborted
+        ? 'Generation timed out'
+        : filtered
+          ? 'Couldn’t generate that one — try rephrasing without brand names'
+          : 'Image generation failed';
       return NextResponse.json(
-        { error: aborted ? 'Generation timed out' : 'Image generation failed' },
+        { error: userMessage },
         { status: aborted ? 504 : 502 },
       );
     } finally {
       clearTimeout(timeoutId);
     }
 
-    console.log('[avatar-gen] success', {
+    console.log('[store-item-image] success', {
       ms: Date.now() - startedAt,
       bytes: generated.buffer.length,
       mimeType: generated.mimeType,
@@ -226,7 +249,7 @@ export async function POST(request: Request): Promise<NextResponse> {
 
     return NextResponse.json({ url: `/api/uploads/${row.id}` }, { status: 201 });
   } catch (error: unknown) {
-    console.error('[avatar-gen] uncaught error', error);
-    return NextResponse.json({ error: 'Failed to generate avatar' }, { status: 500 });
+    console.error('[store-item-image] uncaught error', error);
+    return NextResponse.json({ error: 'Failed to generate image' }, { status: 500 });
   }
 }

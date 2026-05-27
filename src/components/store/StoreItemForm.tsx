@@ -37,6 +37,12 @@ const CATEGORIES: { value: FormData['category']; label: string }[] = [
   { value: 'books', label: 'Books' },
 ];
 
+type GenQuality = 'fast' | 'quality';
+const GEN_QUALITIES: { value: GenQuality; label: string; hint: string }[] = [
+  { value: 'fast', label: 'Fast', hint: '~5s, lower fidelity' },
+  { value: 'quality', label: 'Quality', hint: 'Slower, sharper' },
+];
+
 export function StoreItemForm({ item, onClose, onSave }: StoreItemFormProps) {
   const [formData, setFormData] = useState<FormData>({
     name: item?.name ?? '',
@@ -49,6 +55,8 @@ export function StoreItemForm({ item, onClose, onSave }: StoreItemFormProps) {
   const [imageUrl, setImageUrl] = useState<string | null>(item?.imageUrl ?? null);
   const [isDragOver, setIsDragOver] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [genQuality, setGenQuality] = useState<GenQuality>('fast');
   const [error, setError] = useState<string | null>(null);
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -111,6 +119,38 @@ export function StoreItemForm({ item, onClose, onSave }: StoreItemFormProps) {
     if (file) handleFile(file);
   }, [handleFile]);
 
+  const handleGenerate = useCallback(async () => {
+    const name = formData.name.trim();
+    if (!name) {
+      setFieldErrors((prev) => ({ ...prev, name: 'Add a name to generate an image' }));
+      return;
+    }
+    setError(null);
+    setIsGenerating(true);
+    try {
+      const res = await fetch('/api/store/items/generate-image', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name,
+          description: formData.description.trim() || undefined,
+          category: formData.category,
+          quality: genQuality,
+        }),
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({ error: 'Generation failed' }));
+        throw new Error(data.error || 'Generation failed');
+      }
+      const { url } = await res.json();
+      setImageUrl(url);
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Failed to generate image');
+    } finally {
+      setIsGenerating(false);
+    }
+  }, [formData.name, formData.description, formData.category, genQuality]);
+
   const handleSubmit = useCallback(async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
@@ -130,10 +170,10 @@ export function StoreItemForm({ item, onClose, onSave }: StoreItemFormProps) {
       };
 
       if (item) {
-        const res = await fetch(`/api/store/items/${item.id}`, {
+        const res = await fetch('/api/store/items', {
           method: 'PATCH',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(payload),
+          body: JSON.stringify({ id: item.id, ...payload }),
         });
         if (!res.ok) throw new Error('Failed to update item');
       } else {
@@ -247,6 +287,55 @@ export function StoreItemForm({ item, onClose, onSave }: StoreItemFormProps) {
               onChange={handleFileChange}
               className="hidden"
             />
+            <div className="mt-2 flex items-center gap-2">
+              <button
+                type="button"
+                onClick={handleGenerate}
+                disabled={isGenerating || !formData.name.trim()}
+                className="flex flex-1 items-center justify-center gap-2 rounded-full px-4 py-2 text-sm font-semibold transition-transform active:scale-95 disabled:opacity-50"
+                style={{
+                  background: 'var(--surface-container-low)',
+                  color: 'var(--on-surface-variant)',
+                  border: '1px solid var(--outline-variant)',
+                }}
+              >
+                <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>
+                  auto_awesome
+                </span>
+                {isGenerating ? 'Generating…' : imageUrl ? 'Regenerate' : 'Generate with AI'}
+              </button>
+              <div
+                role="radiogroup"
+                aria-label="Generation quality"
+                className="flex flex-shrink-0 gap-1 rounded-full p-1"
+                style={{
+                  background: 'var(--surface-container-low)',
+                  border: '1px solid var(--outline-variant)',
+                }}
+              >
+                {GEN_QUALITIES.map((q) => {
+                  const selected = genQuality === q.value;
+                  return (
+                    <button
+                      key={q.value}
+                      type="button"
+                      role="radio"
+                      aria-checked={selected}
+                      onClick={() => setGenQuality(q.value)}
+                      disabled={isGenerating}
+                      title={q.hint}
+                      className="rounded-full px-3 py-1 text-xs font-semibold transition-colors disabled:opacity-50"
+                      style={{
+                        background: selected ? 'var(--primary)' : 'transparent',
+                        color: selected ? 'var(--on-primary)' : 'var(--on-surface-variant)',
+                      }}
+                    >
+                      {q.label}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
           </div>
 
           {/* Item Name */}
@@ -370,30 +459,39 @@ export function StoreItemForm({ item, onClose, onSave }: StoreItemFormProps) {
 
           {/* Category */}
           <div>
-            <label
-              htmlFor="item-category"
+            <span
+              id="item-category-label"
               className="mb-1 block text-sm font-medium"
               style={{ color: 'var(--on-surface-variant)' }}
             >
               Category
-            </label>
-            <select
-              id="item-category"
-              value={formData.category}
-              onChange={(e) => setFormData((prev) => ({ ...prev, category: e.target.value as FormData['category'] }))}
-              className="w-full rounded-full px-4 py-3 text-base outline-none"
-              style={{
-                background: 'var(--surface-container-low)',
-                color: 'var(--on-surface)',
-                border: '1px solid var(--outline-variant)',
-                minHeight: '48px',
-                appearance: 'none',
-              }}
+            </span>
+            <div
+              role="radiogroup"
+              aria-labelledby="item-category-label"
+              className="flex flex-wrap gap-2"
             >
-              {CATEGORIES.map((cat) => (
-                <option key={cat.value} value={cat.value}>{cat.label}</option>
-              ))}
-            </select>
+              {CATEGORIES.map((cat) => {
+                const selected = formData.category === cat.value;
+                return (
+                  <button
+                    key={cat.value}
+                    type="button"
+                    role="radio"
+                    aria-checked={selected}
+                    onClick={() => setFormData((prev) => ({ ...prev, category: cat.value }))}
+                    className="rounded-full px-4 py-2 text-sm font-semibold transition-transform active:scale-95"
+                    style={{
+                      background: selected ? 'var(--primary)' : 'var(--surface-container-low)',
+                      color: selected ? 'var(--on-primary)' : 'var(--on-surface-variant)',
+                      border: `1px solid ${selected ? 'var(--primary)' : 'var(--outline-variant)'}`,
+                    }}
+                  >
+                    {cat.label}
+                  </button>
+                );
+              })}
+            </div>
           </div>
 
           {/* Active Toggle */}

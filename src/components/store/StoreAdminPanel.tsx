@@ -96,10 +96,10 @@ export function InventoryTab() {
 
   const handleToggleActive = useCallback(async (item: StoreItem) => {
     try {
-      const res = await fetch(`/api/store/items/${item.id}`, {
+      const res = await fetch('/api/store/items', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ active: !item.active }),
+        body: JSON.stringify({ id: item.id, active: !item.active }),
       });
       if (!res.ok) throw new Error('Failed to update item');
       setOpenMenuId(null);
@@ -112,7 +112,7 @@ export function InventoryTab() {
 
   const handleDelete = useCallback(async (id: string) => {
     try {
-      const res = await fetch(`/api/store/items/${id}`, { method: 'DELETE' });
+      const res = await fetch(`/api/store/items?id=${encodeURIComponent(id)}`, { method: 'DELETE' });
       if (!res.ok) throw new Error('Failed to delete item');
       setConfirmDeleteId(null);
       setOpenMenuId(null);

@@ -210,7 +210,7 @@ export type VoiceChoreCompleteInput = z.infer<typeof voiceChoreCompleteSchema>;
 export const createStoreItemSchema = z.object({
   name: z.string().min(1, 'Name is required').max(100),
   description: z.string().max(500).default(''),
-  imageUrl: z.string().url().nullable().optional(),
+  imageUrl: z.string().nullable().optional(),
   price: z.number().positive().multipleOf(0.01),
   category: z.enum(['toys', 'games', 'experiences', 'books']).default('toys'),
   stock: z.number().int().nonnegative().default(0),
@@ -221,7 +221,7 @@ export const updateStoreItemSchema = z.object({
   id: z.string().uuid(),
   name: z.string().min(1).max(100).optional(),
   description: z.string().max(500).optional(),
-  imageUrl: z.string().url().nullable().optional(),
+  imageUrl: z.string().nullable().optional(),
   price: z.number().positive().multipleOf(0.01).optional(),
   category: z.enum(['toys', 'games', 'experiences', 'books']).optional(),
   stock: z.number().int().nonnegative().optional(),
@@ -243,5 +243,19 @@ export const updateStoreOrderSchema = z.object({
   status: z.enum(['pending', 'approved', 'shipped', 'delivered']),
 });
 
+export const storeOrderStatusSchema = z.object({
+  status: z.enum(['pending', 'approved', 'shipped', 'delivered']),
+});
+
 export type CreateStoreOrderInput = z.infer<typeof createStoreOrderSchema>;
 export type UpdateStoreOrderInput = z.infer<typeof updateStoreOrderSchema>;
+
+// ─── Store Settings ──────────────────────────────────────────────────────────
+
+export const storeSettingsSchema = z.object({
+  currencyName: z.string().min(1).max(30),
+  minimumBalance: z.number().int().nonnegative(),
+  notifyNewOrders: z.boolean(),
+});
+
+export type StoreSettingsInput = z.infer<typeof storeSettingsSchema>;
