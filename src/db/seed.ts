@@ -386,12 +386,13 @@ async function seed(): Promise<void> {
   console.log('  ✅ Created 8 store items');
 
   // ─── App Settings ─────────────────────────────────────────────────────────
+  const adminPin = process.env.DEFAULT_ADMIN_PIN ?? '1234';
   await db
     .insert(schema.appSettings)
-    .values({ key: 'admin_pin', value: '1234' })
+    .values({ key: 'admin_pin', value: adminPin })
     .onConflictDoNothing();
 
-  console.log('  ✅ Set default admin PIN (1234)');
+  console.log(`  ✅ Set default admin PIN (${adminPin})`);
 
   console.log('🎉 Seeding complete!');
   await pool.end();

@@ -36,6 +36,8 @@ COPY --from=builder --chown=nextjs:nodejs /app/package.json /migrator/package.js
 COPY --from=builder --chown=nextjs:nodejs /app/drizzle.config.ts /migrator/drizzle.config.ts
 COPY --from=builder --chown=nextjs:nodejs /app/src/db/schema.ts /migrator/src/db/schema.ts
 
+COPY --from=builder --chown=nextjs:nodejs /app/scripts/seed-admin-pin.mjs /app/scripts/seed-admin-pin.mjs
+
 COPY --chown=nextjs:nodejs docker-entrypoint.sh /docker-entrypoint.sh
 RUN chmod +x /docker-entrypoint.sh
 
