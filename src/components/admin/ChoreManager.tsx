@@ -1,6 +1,8 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
+import { EmojiPicker } from './EmojiPicker';
+import { suggestEmoji } from '@/lib/emoji-suggester';
 
 interface KidRecord {
   id: string;
@@ -31,10 +33,11 @@ interface ChoreFormData {
 }
 
 const QUICK_EMOJIS = ['\uD83E\uDDF9', '\uD83E\uDDFC', '\uD83D\uDEBF', '\uD83D\uDC1F', '\uD83C\uDF3F', '\uD83C\uDFE0', '\uD83D\uDD28', '\uD83E\uDDFB', '\uD83C\uDF81', '\u2B50'];
+const DEFAULT_ICON = '\uD83D\uDCCB';
 
 const EMPTY_FORM: ChoreFormData = {
   name: '',
-  icon: '\uD83D\uDCCB',
+  icon: DEFAULT_ICON,
   frequency: 'daily',
   assignedKidIds: [],
 };
@@ -51,6 +54,22 @@ export function ChoreManager() {
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
+  const [pickerOpen, setPickerOpen] = useState(false);
+  // Tracks whether the user has picked an icon explicitly; if so, we stop
+  // auto-suggesting from the name. Reset on Add / set on Edit.
+  const iconManuallySetRef = useRef(false);
+
+  const recentEmojis = useMemo(() => {
+    const out: string[] = [];
+    const seen = new Set<string>();
+    for (const c of chores) {
+      if (c.icon && !seen.has(c.icon)) {
+        seen.add(c.icon);
+        out.push(c.icon);
+      }
+    }
+    return out;
+  }, [chores]);
 
   const fetchData = useCallback(async () => {
     setIsLoading(true);
@@ -81,6 +100,7 @@ export function ChoreManager() {
     setEditingId(null);
     setFormError(null);
     setShowForm(true);
+    iconManuallySetRef.current = false;
   }, []);
 
   const handleOpenEdit = useCallback((chore: ChoreRecord) => {
@@ -94,6 +114,25 @@ export function ChoreManager() {
     setFormError(null);
     setShowForm(true);
     setOpenMenuId(null);
+    iconManuallySetRef.current = true;
+  }, []);
+
+  const handleNameChange = useCallback((nextName: string) => {
+    setFormData((prev) => {
+      const next = { ...prev, name: nextName };
+      if (!iconManuallySetRef.current) {
+        const suggestion = suggestEmoji(nextName);
+        if (suggestion) next.icon = suggestion;
+        else next.icon = DEFAULT_ICON;
+      }
+      return next;
+    });
+  }, []);
+
+  const handlePickIcon = useCallback((icon: string) => {
+    iconManuallySetRef.current = true;
+    setFormData((prev) => ({ ...prev, icon }));
+    setPickerOpen(false);
   }, []);
 
   const handleCancel = useCallback(() => {
@@ -276,31 +315,75 @@ export function ChoreManager() {
             <div className="flex flex-col gap-4">
               {/* Emoji Picker */}
               <div>
-                <span
-                  className="mb-2 block text-sm font-medium"
-                  style={{ color: 'var(--on-surface-variant)' }}
-                >
-                  Emoji
-                </span>
-                <div className="no-scrollbar flex gap-2 overflow-x-auto pb-1">
-                  {QUICK_EMOJIS.map((emoji) => (
-                    <button
-                      key={emoji}
-                      type="button"
-                      onClick={() => setFormData((prev) => ({ ...prev, icon: emoji }))}
-                      className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-xl transition-transform active:scale-90"
-                      style={{
-                        background: formData.icon === emoji
-                          ? 'var(--secondary-container)'
-                          : 'var(--surface-container-low)',
-                        border: formData.icon === emoji
-                          ? '2px solid var(--secondary)'
-                          : '2px solid transparent',
-                      }}
+                <div className="mb-2 flex items-baseline justify-between">
+                  <span
+                    className="block text-sm font-medium"
+                    style={{ color: 'var(--on-surface-variant)' }}
+                  >
+                    Emoji
+                  </span>
+                  {!iconManuallySetRef.current && formData.name.trim() !== '' && (
+                    <span
+                      className="text-xs"
+                      style={{ color: 'var(--on-surface-variant)' }}
                     >
-                      {emoji}
-                    </button>
-                  ))}
+                      Auto-picked
+                    </span>
+                  )}
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="no-scrollbar flex flex-1 gap-2 overflow-x-auto pb-1">
+                    {/* Current selection always pinned first if not in quick set */}
+                    {!QUICK_EMOJIS.includes(formData.icon) && (
+                      <button
+                        key={`current-${formData.icon}`}
+                        type="button"
+                        onClick={() => setPickerOpen(true)}
+                        className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-xl"
+                        style={{
+                          background: 'var(--secondary-container)',
+                          border: '2px solid var(--secondary)',
+                        }}
+                        aria-label="Current emoji — tap to change"
+                      >
+                        {formData.icon}
+                      </button>
+                    )}
+                    {QUICK_EMOJIS.map((emoji) => (
+                      <button
+                        key={emoji}
+                        type="button"
+                        onClick={() => handlePickIcon(emoji)}
+                        className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-xl transition-transform active:scale-90"
+                        style={{
+                          background: formData.icon === emoji
+                            ? 'var(--secondary-container)'
+                            : 'var(--surface-container-low)',
+                          border: formData.icon === emoji
+                            ? '2px solid var(--secondary)'
+                            : '2px solid transparent',
+                        }}
+                      >
+                        {emoji}
+                      </button>
+                    ))}
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setPickerOpen(true)}
+                    className="flex h-10 shrink-0 items-center gap-1 rounded-full px-3 text-sm font-medium transition-transform active:scale-95"
+                    style={{
+                      background: 'var(--surface-container-low)',
+                      color: 'var(--on-surface-variant)',
+                      border: '1px solid var(--outline-variant)',
+                    }}
+                    aria-label="Browse all emojis"
+                  >
+                    <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>
+                      search
+                    </span>
+                    More
+                  </button>
                 </div>
               </div>
 
@@ -317,7 +400,7 @@ export function ChoreManager() {
                   id="chore-name"
                   type="text"
                   value={formData.name}
-                  onChange={(e) => setFormData((prev) => ({ ...prev, name: e.target.value }))}
+                  onChange={(e) => handleNameChange(e.target.value)}
                   className="w-full rounded-full px-4 py-3 text-base outline-none"
                   style={{
                     background: 'var(--surface-container-low)',
@@ -592,6 +675,14 @@ export function ChoreManager() {
           </div>
         </div>
       </div>
+
+      <EmojiPicker
+        open={pickerOpen}
+        selected={formData.icon}
+        recent={recentEmojis}
+        onSelect={handlePickIcon}
+        onClose={() => setPickerOpen(false)}
+      />
     </div>
   );
 }
