@@ -1,6 +1,7 @@
 'use client';
 
-import { useState, useCallback, useRef } from 'react';
+import { useState, useCallback, useRef, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { resizeImage } from '@/lib/resize-image';
 
 interface StoreItem {
@@ -51,6 +52,11 @@ export function StoreItemForm({ item, onClose, onSave }: StoreItemFormProps) {
   const [error, setError] = useState<string | null>(null);
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   const validate = useCallback((): boolean => {
     const errors: Record<string, string> = {};
@@ -148,14 +154,16 @@ export function StoreItemForm({ item, onClose, onSave }: StoreItemFormProps) {
     }
   }, [formData, imageUrl, item, validate, onSave]);
 
-  return (
+  if (!mounted) return null;
+
+  return createPortal(
     <div
       className="fixed inset-0 z-50 flex items-center justify-center p-4"
       style={{ background: 'rgba(0,0,0,0.4)', backdropFilter: 'blur(8px)' }}
       onClick={onClose}
     >
       <div
-        className="animate-bounce-in w-full max-w-lg max-h-[90vh] overflow-y-auto rounded-[3rem] p-8"
+        className="animate-bounce-in flex w-full max-w-lg max-h-[90vh] flex-col overflow-hidden rounded-[3rem]"
         style={{
           background: 'var(--surface-container-lowest)',
           boxShadow: '0 24px 64px rgba(0,0,0,0.2)',
@@ -163,7 +171,7 @@ export function StoreItemForm({ item, onClose, onSave }: StoreItemFormProps) {
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
-        <div className="mb-6 flex items-center justify-between">
+        <div className="flex flex-shrink-0 items-center justify-between px-8 pt-8 pb-4">
           <h2
             className="font-headline text-2xl font-bold"
             style={{ color: 'var(--on-surface)' }}
@@ -181,7 +189,8 @@ export function StoreItemForm({ item, onClose, onSave }: StoreItemFormProps) {
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="flex flex-col gap-5">
+        <form onSubmit={handleSubmit} className="flex min-h-0 flex-1 flex-col">
+          <div className="flex flex-col gap-5 overflow-y-auto px-8 pb-2">
           {/* Image Upload */}
           <div>
             <span
@@ -417,14 +426,15 @@ export function StoreItemForm({ item, onClose, onSave }: StoreItemFormProps) {
             </button>
           </div>
 
-          {error && (
-            <p className="text-sm font-medium" style={{ color: 'var(--error)' }} role="alert">
-              {error}
-            </p>
-          )}
+            {error && (
+              <p className="text-sm font-medium" style={{ color: 'var(--error)' }} role="alert">
+                {error}
+              </p>
+            )}
+          </div>
 
           {/* Buttons */}
-          <div className="flex gap-3">
+          <div className="flex flex-shrink-0 gap-3 px-8 pt-4 pb-8">
             <button
               type="submit"
               disabled={isSaving}
@@ -448,6 +458,7 @@ export function StoreItemForm({ item, onClose, onSave }: StoreItemFormProps) {
           </div>
         </form>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }
