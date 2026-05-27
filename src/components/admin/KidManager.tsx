@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { resizeImage } from '@/lib/resize-image';
 import { GenerateAvatarModal } from './GenerateAvatarModal';
 
@@ -402,15 +403,25 @@ export function KidManager() {
         </button>
       </div>
 
-      {/* Inline Form Modal */}
-      {showForm && (
+      {/* Centered Modal (portaled to document.body to escape ancestor transforms/overflow) */}
+      {showForm && typeof document !== 'undefined' && createPortal(
         <div
-          className="animate-bounce-in rounded-[3rem] p-6"
+          className="fixed inset-0 z-50 flex items-center justify-center p-4"
+          style={{
+            background: 'rgba(0,0,0,0.5)',
+            backdropFilter: 'blur(8px)',
+            WebkitBackdropFilter: 'blur(8px)',
+          }}
+          onClick={handleCancel}
+        >
+        <div
+          className="animate-bounce-in w-full max-w-md max-h-[90vh] overflow-y-auto rounded-[3rem] p-6"
           style={{
             background: 'var(--surface-container-lowest)',
             border: '1px solid var(--surface-container-high)',
-            boxShadow: '0 8px 32px rgba(0,0,0,0.12)',
+            boxShadow: '0 24px 64px rgba(0,0,0,0.2)',
           }}
+          onClick={(e) => e.stopPropagation()}
         >
           <h3
             className="mb-4 font-headline text-xl font-bold"
@@ -587,6 +598,8 @@ export function KidManager() {
             </div>
           </div>
         </div>
+        </div>,
+        document.body,
       )}
 
       {showGenerator && (
