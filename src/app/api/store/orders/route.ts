@@ -1,25 +1,22 @@
 import { NextResponse } from 'next/server';
-import { eq, and } from 'drizzle-orm';
+import { eq, and, desc } from 'drizzle-orm';
 import { ZodError } from 'zod';
 import { db } from '@/db';
-import { storeOrders, storeItems } from '@/db/schema';
+import { storeOrders, storeItems, kids } from '@/db/schema';
 import {
   createStoreOrderSchema,
   updateStoreOrderSchema,
 } from '@/lib/validators';
 
 // ─── GET /api/store/orders?kidId=X ───────────────────────────────────────────
+// kidId is optional; omitting it returns all orders (admin view).
 
 export async function GET(request: Request): Promise<NextResponse> {
   try {
     const { searchParams } = new URL(request.url);
     const kidId = searchParams.get('kidId');
 
-    if (!kidId) {
-      return NextResponse.json({ error: 'kidId is required' }, { status: 400 });
-    }
-
-    const orders = await db
+    const baseQuery = db
       .select({
         id: storeOrders.id,
         kidId: storeOrders.kidId,
@@ -27,19 +24,23 @@ export async function GET(request: Request): Promise<NextResponse> {
         status: storeOrders.status,
         createdAt: storeOrders.createdAt,
         updatedAt: storeOrders.updatedAt,
+        kidName: kids.name,
         itemName: storeItems.name,
-        itemPrice: storeItems.price,
+        price: storeItems.price,
         itemImageUrl: storeItems.imageUrl,
       })
       .from(storeOrders)
       .leftJoin(storeItems, eq(storeOrders.itemId, storeItems.id))
-      .where(eq(storeOrders.kidId, kidId))
-      .orderBy(storeOrders.createdAt);
+      .leftJoin(kids, eq(storeOrders.kidId, kids.id));
+
+    const orders = kidId
+      ? await baseQuery.where(eq(storeOrders.kidId, kidId)).orderBy(desc(storeOrders.createdAt))
+      : await baseQuery.orderBy(desc(storeOrders.createdAt));
 
     return NextResponse.json(
       orders.map((o) => ({
         ...o,
-        itemPrice: Number(o.itemPrice),
+        price: Number(o.price),
       }))
     );
   } catch (error: unknown) {
