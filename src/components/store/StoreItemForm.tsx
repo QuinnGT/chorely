@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useCallback, useRef } from 'react';
+import { resizeImage } from '@/lib/resize-image';
 
 interface StoreItem {
   id: string;
@@ -68,17 +69,18 @@ export function StoreItemForm({ item, onClose, onSave }: StoreItemFormProps) {
     return Object.keys(errors).length === 0;
   }, [formData]);
 
-  const handleFile = useCallback((file: File) => {
+  const handleFile = useCallback(async (file: File) => {
     if (!file.type.startsWith('image/')) {
       setError('Please upload an image file');
       return;
     }
+    const resized = await resizeImage(file, 1000);
     const reader = new FileReader();
     reader.onload = (e) => {
       setImageUrl(e.target?.result as string);
       setError(null);
     };
-    reader.readAsDataURL(file);
+    reader.readAsDataURL(resized);
   }, []);
 
   const handleFileChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {

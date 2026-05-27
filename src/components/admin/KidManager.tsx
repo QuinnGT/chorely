@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback, useRef } from 'react';
+import { resizeImage } from '@/lib/resize-image';
 
 interface KidRecord {
   id: string;
@@ -127,11 +128,12 @@ export function KidManager() {
   }, [formData, editingId, fetchKids]);
 
   const handleAvatarUpload = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
+    const original = e.target.files?.[0];
+    if (!original) return;
 
     setIsUploading(true);
     try {
+      const file = await resizeImage(original, 600);
       const formDataUpload = new FormData();
       formDataUpload.append('file', file);
       const res = await fetch('/api/upload', { method: 'POST', body: formDataUpload });

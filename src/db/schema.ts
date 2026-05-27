@@ -7,8 +7,15 @@ import {
   date,
   uuid,
   numeric,
+  customType,
 } from 'drizzle-orm/pg-core';
 import { relations } from 'drizzle-orm';
+
+const bytea = customType<{ data: Buffer; default: false }>({
+  dataType() {
+    return 'bytea';
+  },
+});
 
 // ─── Kids ───────────────────────────────────────────────────────────────────
 
@@ -207,3 +214,12 @@ export const storeOrdersRelations = relations(storeOrders, ({ one }) => ({
   kid: one(kids, { fields: [storeOrders.kidId], references: [kids.id] }),
   item: one(storeItems, { fields: [storeOrders.itemId], references: [storeItems.id] }),
 }));
+
+// ─── Uploads ─────────────────────────────────────────────────────────────────
+
+export const uploads = pgTable('uploads', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  mimeType: text('mime_type').notNull(),
+  data: bytea('data').notNull(),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+});
