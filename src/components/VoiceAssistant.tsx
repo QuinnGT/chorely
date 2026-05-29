@@ -366,23 +366,41 @@ export function VoiceAssistant({
 
   const effectiveMode = voice.isSupported ? mode : 'text';
 
-  /* ---- Render: text-only fallback ---- */
+  /* ---- Render: unsupported-device fallback ---- */
+  // Browser speech recognition is unavailable (notably on iOS/iPadOS, where
+  // WebKit has no SpeechRecognition API). Rather than a mic button that
+  // silently does nothing, give the kid clear, friendly feedback on tap.
 
   if (effectiveMode === 'text') {
     return (
-      <button
-        type="button"
-        onClick={handleTapToSpeak}
-        className="fixed bottom-24 right-6 md:bottom-10 md:right-10 z-[60] w-20 h-20 rounded-full bg-gradient-to-br from-[var(--primary)] to-[var(--primary-dim)] text-white shadow-[0_12px_40px_rgba(0,101,113,0.3)] flex items-center justify-center transition-transform active:scale-90"
-        aria-label="Tap to speak"
-      >
-        <span
-          className="material-symbols-outlined text-4xl"
-          style={{ fontVariationSettings: '"FILL" 1' }}
+      <>
+        <button
+          type="button"
+          onClick={() =>
+            setEmojiToast({
+              visible: true,
+              emoji: '🎙️',
+              message: "Voice chat isn't available on this device yet",
+            })
+          }
+          className="fixed bottom-24 right-6 md:bottom-10 md:right-10 z-[60] w-20 h-20 rounded-full bg-gradient-to-br from-[var(--primary)] to-[var(--primary-dim)] text-white shadow-[0_12px_40px_rgba(0,101,113,0.3)] flex items-center justify-center transition-transform active:scale-90 opacity-80"
+          aria-label="Voice chat unavailable on this device"
         >
-          mic
-        </span>
-      </button>
+          <span
+            className="material-symbols-outlined text-4xl"
+            style={{ fontVariationSettings: '"FILL" 1' }}
+          >
+            mic_off
+          </span>
+        </button>
+
+        <EmojiToast
+          visible={emojiToast.visible}
+          emoji={emojiToast.emoji}
+          message={emojiToast.message}
+          onDismiss={() => setEmojiToast((prev) => ({ ...prev, visible: false }))}
+        />
+      </>
     );
   }
 
