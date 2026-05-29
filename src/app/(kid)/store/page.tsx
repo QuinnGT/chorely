@@ -66,8 +66,7 @@ export default function StorePage() {
 
       if (balanceRes.ok) {
         const data = await balanceRes.json();
-        const total = parseFloat(data.currentWeek?.total ?? '0');
-        setBalance(total);
+        setBalance(Number(data.spendableBalance ?? 0));
       }
 
       if (goalsRes.ok) {
@@ -103,14 +102,17 @@ export default function StorePage() {
       if (res.ok) {
         setRedeemSuccessItem(redeemItem);
         setRedeemItem(null);
+        // Optimistic update for instant feedback, then reconcile with the
+        // server so the persisted spend (and stock) is reflected accurately.
         setBalance((prev) => prev - redeemItem.price);
+        fetchStoreData();
       }
     } catch {
       // Silently fail
     } finally {
       setRedeeming(false);
     }
-  }, [redeemItem, kidId]);
+  }, [redeemItem, kidId, fetchStoreData]);
 
   const handleAddToGoal = useCallback(async (item: StoreItem) => {
     if (!kidId) return;

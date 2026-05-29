@@ -7,6 +7,7 @@ import {
   createStoreOrderSchema,
   updateStoreOrderSchema,
 } from '@/lib/validators';
+import { computeSpendableBalance } from '@/lib/allowance-week';
 
 // ─── GET /api/store/orders?kidId=X ───────────────────────────────────────────
 // kidId is optional; omitting it returns all orders (admin view).
@@ -80,6 +81,16 @@ export async function POST(request: Request): Promise<NextResponse> {
     if (item.stock <= 0) {
       return NextResponse.json(
         { error: 'Item is out of stock' },
+        { status: 400 }
+      );
+    }
+
+    // Make sure the kid can actually afford it — guards against stale clients
+    // and prevents a wallet from going negative.
+    const { spendableBalance } = await computeSpendableBalance(validated.kidId);
+    if (Number(item.price) > spendableBalance) {
+      return NextResponse.json(
+        { error: 'Not enough balance to redeem this item' },
         { status: 400 }
       );
     }

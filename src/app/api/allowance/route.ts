@@ -1,20 +1,27 @@
 import { NextResponse } from 'next/server';
-import { eq, and, desc, gte, lte, inArray, sql } from 'drizzle-orm';
+import { eq, and, desc, lt, sql } from 'drizzle-orm';
 import { z } from 'zod';
 import { db } from '@/db';
 import {
   allowanceLedger,
-  choreAssignments,
-  choreCompletions,
   spendingCategories,
   categoryBalances,
   savingsGoals,
 } from '@/db/schema';
 import { calculateAllowance, calculateStreak } from '@/lib/allowance-engine';
 import { loadAllowanceRules } from '@/lib/allowance-rules';
-import { getWeekStart, formatDate } from '@/lib/date-utils';
 import { splitEarnings } from '@/lib/spending-categories';
 import { allocateEarnings } from '@/lib/savings-allocation';
+import {
+  getAssignmentsWithChores,
+  getCompletionsForWeek,
+  buildCompletionRecords,
+  computeTotalExpected,
+  buildStreakMap,
+  computeCurrentWeekAllowance,
+  bankWeek,
+  summarizeWallet,
+} from '@/lib/allowance-week';
 
 // ─── Validation schemas ─────────────────────────────────────────────────────
 
@@ -27,106 +34,6 @@ const patchAllowanceSchema = z.object({
   id: z.string().uuid(),
   paidVia: z.string().max(50).optional(),
 });
-
-// ─── Helpers ────────────────────────────────────────────────────────────────
-
-async function getAssignmentsWithChores(kidId: string) {
-  return db.query.choreAssignments.findMany({
-    where: eq(choreAssignments.kidId, kidId),
-    with: { chore: true },
-  });
-}
-
-async function getCompletionsForWeek(assignmentIds: string[], weekStart: string) {
-  const endDate = new Date(weekStart);
-  endDate.setDate(endDate.getDate() + 6);
-  const endStr = formatDate(endDate);
-
-  if (assignmentIds.length === 0) return [];
-
-  return db
-    .select()
-    .from(choreCompletions)
-    .where(
-      and(
-        inArray(choreCompletions.assignmentId, assignmentIds),
-        eq(choreCompletions.completed, true),
-        gte(choreCompletions.date, weekStart),
-        lte(choreCompletions.date, endStr)
-      )
-    );
-}
-
-function buildCompletionRecords(
-  completions: { date: string; completed: boolean; assignmentId: string }[],
-  assignments: { id: string; chore: { frequency: 'daily' | 'weekly' } }[]
-) {
-  const assignmentFreqMap = new Map(
-    assignments.map((a) => [a.id, a.chore.frequency])
-  );
-
-  return completions.map((c) => ({
-    date: c.date,
-    completed: c.completed,
-    frequency: assignmentFreqMap.get(c.assignmentId) ?? ('daily' as const),
-  }));
-}
-
-function computeTotalExpected(
-  assignments: { chore: { frequency: 'daily' | 'weekly' } }[]
-) {
-  let total = 0;
-  for (const a of assignments) {
-    total += a.chore.frequency === 'daily' ? 7 : 1;
-  }
-  return total;
-}
-
-async function buildStreakMap(kidId: string, today: Date) {
-  const assignments = await getAssignmentsWithChores(kidId);
-  const dailyAssignmentIds = assignments
-    .filter((a) => a.chore.frequency === 'daily')
-    .map((a) => a.id);
-
-  if (dailyAssignmentIds.length === 0) {
-    return new Map<string, boolean[]>();
-  }
-
-  // Query only completions for daily assignments in the last year
-  const yearAgo = new Date(today);
-  yearAgo.setFullYear(yearAgo.getFullYear() - 1);
-  const yearAgoStr = formatDate(yearAgo);
-  const todayStr = formatDate(today);
-
-  const dailyCompletions = await db
-    .select()
-    .from(choreCompletions)
-    .where(
-      and(
-        inArray(choreCompletions.assignmentId, dailyAssignmentIds),
-        eq(choreCompletions.completed, true),
-        gte(choreCompletions.date, yearAgoStr),
-        lte(choreCompletions.date, todayStr)
-      )
-    );
-
-  // Build map: date → array of booleans (one per daily assignment)
-  const dateMap = new Map<string, boolean[]>();
-  const d = new Date(today);
-  d.setHours(0, 0, 0, 0);
-
-  for (let i = 0; i < 365; i++) {
-    const dateStr = formatDate(d);
-    const completionsForDate = dailyCompletions.filter((c) => c.date === dateStr);
-    const booleans = dailyAssignmentIds.map((aId) =>
-      completionsForDate.some((c) => c.assignmentId === aId)
-    );
-    dateMap.set(dateStr, booleans);
-    d.setDate(d.getDate() - 1);
-  }
-
-  return dateMap;
-}
 
 // ─── Allocation helpers ─────────────────────────────────────────────────────
 
@@ -235,32 +142,34 @@ export async function GET(request: Request): Promise<NextResponse> {
       return NextResponse.json({ error: 'kidId is required' }, { status: 400 });
     }
 
-    // Fetch ledger history
+    // Compute the in-progress week's projected allowance.
+    const today = new Date();
+    const currentWeek = await computeCurrentWeekAllowance(kidId, today);
+
+    // History is strictly past weeks (the in-progress week shows separately).
     const history = await db
       .select()
       .from(allowanceLedger)
-      .where(eq(allowanceLedger.kidId, kidId))
+      .where(
+        and(
+          eq(allowanceLedger.kidId, kidId),
+          lt(allowanceLedger.weekStart, currentWeek.weekStart)
+        )
+      )
       .orderBy(desc(allowanceLedger.weekStart));
 
-    // Compute current week's projected allowance
-    const today = new Date();
-    const weekStartDate = getWeekStart(today);
-    const weekStartStr = formatDate(weekStartDate);
+    // Bank the in-progress week so it counts toward the persistent wallet,
+    // then derive the spendable balance (lifetime earned − non-declined spend).
+    await bankWeek(kidId, currentWeek.weekStart, currentWeek.base, currentWeek.bonus);
+    const wallet = await summarizeWallet(kidId);
 
-    const assignments = await getAssignmentsWithChores(kidId);
-    const assignmentIds = assignments.map((a) => a.id);
-    const completions = await getCompletionsForWeek(assignmentIds, weekStartStr);
-
-    const completionRecords = buildCompletionRecords(completions, assignments);
-    const totalExpected = computeTotalExpected(assignments);
-
-    const streakMap = await buildStreakMap(kidId, today);
-    const streakDays = calculateStreak(streakMap, today);
-
-    const rules = await loadAllowanceRules(kidId);
-    const currentWeek = calculateAllowance(completionRecords, totalExpected, streakDays, rules);
-
-    return NextResponse.json({ currentWeek, history });
+    return NextResponse.json({
+      currentWeek,
+      history,
+      spendableBalance: wallet.spendableBalance,
+      lifetimeEarned: wallet.lifetimeEarned,
+      totalSpent: wallet.totalSpent,
+    });
   } catch (error: unknown) {
     console.error('Failed to fetch allowance:', error);
     return NextResponse.json({ error: 'Failed to fetch allowance' }, { status: 500 });

@@ -72,7 +72,7 @@ export default function DashboardPage() {
   }, [voiceSettingsRaw, kidId]);
 
   const { rows, completionRate, streakDays, refetch: refetchChores } = useChoreGrid(kidId);
-  const { currentWeek, history, markPaid, refetch: refetchAllowance } = useAllowance(kidId);
+  const { currentWeek, history, spendableBalance, markPaid, refetch: refetchAllowance } = useAllowance(kidId);
   const achievements = useAchievements(kidId, completionRate, streakDays, rows);
 
   const allDailyComplete = useMemo(() => {
@@ -148,7 +148,7 @@ export default function DashboardPage() {
           </div>
           <div>
             <p className="font-label text-[10px] font-bold uppercase tracking-wider text-on-surface-variant">Your Wallet</p>
-            <p className="font-headline text-lg font-black text-on-surface">${allowanceTotal.toFixed(2)}</p>
+            <p className="font-headline text-lg font-black text-on-surface">${spendableBalance.toFixed(2)}</p>
           </div>
         </div>
       </div>

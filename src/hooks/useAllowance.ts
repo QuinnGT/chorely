@@ -22,6 +22,7 @@ interface AllowanceRecord {
 interface UseAllowanceResult {
   currentWeek: CurrentWeek | null;
   history: AllowanceRecord[];
+  spendableBalance: number;
   isLoading: boolean;
   error: string | null;
   refetch: () => void;
@@ -31,6 +32,7 @@ interface UseAllowanceResult {
 export function useAllowance(kidId: string): UseAllowanceResult {
   const [currentWeek, setCurrentWeek] = useState<CurrentWeek | null>(null);
   const [history, setHistory] = useState<AllowanceRecord[]>([]);
+  const [spendableBalance, setSpendableBalance] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [fetchKey, setFetchKey] = useState(0);
@@ -54,11 +56,13 @@ export function useAllowance(kidId: string): UseAllowanceResult {
         const data = (await res.json()) as {
           currentWeek: CurrentWeek;
           history: AllowanceRecord[];
+          spendableBalance?: number;
         };
 
         if (!cancelled) {
           setCurrentWeek(data.currentWeek);
           setHistory(data.history);
+          setSpendableBalance(Number(data.spendableBalance ?? 0));
         }
       } catch (err: unknown) {
         if (!cancelled) {
@@ -111,5 +115,5 @@ export function useAllowance(kidId: string): UseAllowanceResult {
     }
   }, [history]);
 
-  return { currentWeek, history, isLoading, error, refetch, markPaid };
+  return { currentWeek, history, spendableBalance, isLoading, error, refetch, markPaid };
 }
