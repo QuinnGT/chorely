@@ -21,7 +21,7 @@ export interface StoreOrder {
   kidName: string;
   itemName: string;
   price: number;
-  status: 'pending' | 'approved' | 'shipped' | 'delivered';
+  status: 'pending' | 'approved' | 'shipped' | 'delivered' | 'declined';
   createdAt: string;
 }
 
@@ -43,6 +43,7 @@ const STATUS_COLORS: Record<string, { bg: string; text: string }> = {
   approved: { bg: 'var(--primary-container)', text: 'var(--on-primary-container)' },
   shipped: { bg: 'var(--secondary-container)', text: 'var(--on-secondary-container)' },
   delivered: { bg: '#d1fae5', text: '#065f46' },
+  declined: { bg: 'var(--error-container)', text: 'var(--on-error-container)' },
 };
 
 export function InventoryTab() {
@@ -499,6 +500,7 @@ export function OrdersTab() {
           <option value="approved">Approved</option>
           <option value="shipped">Shipped</option>
           <option value="delivered">Delivered</option>
+          <option value="declined">Declined</option>
         </select>
       </div>
 

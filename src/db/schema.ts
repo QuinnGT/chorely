@@ -205,7 +205,7 @@ export const storeOrders = pgTable('store_orders', {
   id: uuid('id').primaryKey().defaultRandom(),
   kidId: uuid('kid_id').notNull().references(() => kids.id, { onDelete: 'cascade' }),
   itemId: uuid('item_id').notNull().references(() => storeItems.id, { onDelete: 'cascade' }),
-  status: text('status', { enum: ['pending', 'approved', 'shipped', 'delivered'] }).notNull().default('pending'),
+  status: text('status', { enum: ['pending', 'approved', 'shipped', 'delivered', 'declined'] }).notNull().default('pending'),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
 });

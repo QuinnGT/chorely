@@ -1,8 +1,8 @@
 import { NextResponse } from 'next/server';
-import { eq } from 'drizzle-orm';
+import { eq, sql } from 'drizzle-orm';
 import { ZodError } from 'zod';
 import { db } from '@/db';
-import { storeOrders } from '@/db/schema';
+import { storeOrders, storeItems } from '@/db/schema';
 import { storeOrderStatusSchema } from '@/lib/validators';
 
 // ─── PATCH /api/store/orders/:orderId ───────────────────────────────────────
@@ -16,6 +16,20 @@ export async function PATCH(
     const body: unknown = await request.json();
     const validated = storeOrderStatusSchema.parse(body);
 
+    // Fetch the current order so we can detect status transitions
+    // (declining an order returns its item to stock).
+    const [existing] = await db
+      .select()
+      .from(storeOrders)
+      .where(eq(storeOrders.id, orderId));
+
+    if (!existing) {
+      return NextResponse.json(
+        { error: 'Order not found' },
+        { status: 404 },
+      );
+    }
+
     const [updated] = await db
       .update(storeOrders)
       .set({
@@ -25,11 +39,16 @@ export async function PATCH(
       .where(eq(storeOrders.id, orderId))
       .returning();
 
-    if (!updated) {
-      return NextResponse.json(
-        { error: 'Order not found' },
-        { status: 404 },
-      );
+    // Returning the item to stock when an order is declined. Guarded so
+    // re-declining an already-declined order can't inflate stock.
+    if (validated.status === 'declined' && existing.status !== 'declined') {
+      await db
+        .update(storeItems)
+        .set({
+          stock: sql`${storeItems.stock} + 1`,
+          updatedAt: new Date(),
+        })
+        .where(eq(storeItems.id, existing.itemId));
     }
 
     return NextResponse.json(updated);

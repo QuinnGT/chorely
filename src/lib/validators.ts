@@ -240,11 +240,11 @@ export const createStoreOrderSchema = z.object({
 
 export const updateStoreOrderSchema = z.object({
   id: z.string().uuid(),
-  status: z.enum(['pending', 'approved', 'shipped', 'delivered']),
+  status: z.enum(['pending', 'approved', 'shipped', 'delivered', 'declined']),
 });
 
 export const storeOrderStatusSchema = z.object({
-  status: z.enum(['pending', 'approved', 'shipped', 'delivered']),
+  status: z.enum(['pending', 'approved', 'shipped', 'delivered', 'declined']),
 });
 
 export type CreateStoreOrderInput = z.infer<typeof createStoreOrderSchema>;
