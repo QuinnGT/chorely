@@ -17,11 +17,6 @@ export default function GoalsPage() {
 
   const [savingsGoals, setSavingsGoals] = useState<SavingsGoal[]>([]);
   const [spendingCategories, setSpendingCategories] = useState<SpendingCategory[]>([]);
-  const [showAddGoal, setShowAddGoal] = useState(false);
-  const [newGoalName, setNewGoalName] = useState('');
-  const [newGoalTarget, setNewGoalTarget] = useState('');
-  const [addGoalError, setAddGoalError] = useState<string | null>(null);
-  const [addGoalSaving, setAddGoalSaving] = useState(false);
 
   const fetchSavingsGoals = useCallback(async () => {
     if (!kidId) return;
@@ -78,40 +73,24 @@ export default function GoalsPage() {
     fetchSpendingCategories();
   }, [fetchSavingsGoals, fetchSpendingCategories]);
 
-  const handleAddGoal = useCallback(async () => {
-    setAddGoalError(null);
-    const trimmedName = newGoalName.trim();
-    if (!trimmedName) {
-      setAddGoalError('Goal name is required');
-      return;
-    }
-    const target = parseFloat(newGoalTarget);
-    if (isNaN(target) || target <= 0) {
-      setAddGoalError('Target must be a positive number');
-      return;
-    }
-    setAddGoalSaving(true);
-    try {
-      const res = await fetch('/api/savings-goals', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ kidId, name: trimmedName, targetAmount: target }),
-      });
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({ error: 'Failed to create goal' }));
-        setAddGoalError(err.error ?? 'Failed to create goal');
-        return;
+  const handleCreateGoal = useCallback(
+    async (goal: { name: string; targetAmount: number }) => {
+      if (!kidId) return;
+      try {
+        const res = await fetch('/api/savings-goals', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ kidId, name: goal.name, targetAmount: goal.targetAmount }),
+        });
+        if (res.ok) {
+          fetchSavingsGoals();
+        }
+      } catch {
+        // Silently fail
       }
-      setNewGoalName('');
-      setNewGoalTarget('');
-      setShowAddGoal(false);
-      fetchSavingsGoals();
-    } catch {
-      setAddGoalError('Something went wrong');
-    } finally {
-      setAddGoalSaving(false);
-    }
-  }, [kidId, newGoalName, newGoalTarget, fetchSavingsGoals]);
+    },
+    [kidId, fetchSavingsGoals],
+  );
 
   const weeklyTotal = currentWeek?.total ?? 0;
   const baseEarnings = currentWeek?.base ?? 0;
@@ -151,78 +130,8 @@ export default function GoalsPage() {
       {/* Section B: Savings Goals */}
       <section className="mb-12 animate-card-entrance" style={{ animationDelay: '100ms' }}>
         <ErrorBoundary>
-          <SavingsGoalCard goals={savingsGoals} />
+          <SavingsGoalCard goals={savingsGoals} onAddGoal={handleCreateGoal} />
         </ErrorBoundary>
-
-        {showAddGoal && (
-          <div
-            className="glass-card mt-3 flex flex-col gap-3 p-4 animate-card-entrance"
-            data-testid="add-goal-form"
-          >
-            <h3
-              className="font-headline text-lg font-bold"
-              style={{ color: 'var(--kid-primary)' }}
-            >
-              New Savings Goal
-            </h3>
-            <input
-              type="text"
-              placeholder="Goal name (e.g. New Bike)"
-              value={newGoalName}
-              onChange={(e) => setNewGoalName(e.target.value)}
-              maxLength={100}
-              data-testid="goal-name-input"
-              className="rounded-full px-4 text-base"
-              style={{ minHeight: '60px', border: '1px solid var(--outline-variant)' }}
-            />
-            <input
-              type="number"
-              placeholder="Target amount ($)"
-              value={newGoalTarget}
-              onChange={(e) => setNewGoalTarget(e.target.value)}
-              min="0.01"
-              step="0.01"
-              data-testid="goal-target-input"
-              className="rounded-full px-4 text-base"
-              style={{ minHeight: '60px', border: '1px solid var(--outline-variant)' }}
-            />
-            {addGoalError && (
-              <p className="text-sm font-medium" style={{ color: 'var(--error)' }} data-testid="add-goal-error">
-                {addGoalError}
-              </p>
-            )}
-            <div className="flex gap-3">
-              <button
-                type="button"
-                onClick={handleAddGoal}
-                disabled={addGoalSaving}
-                data-testid="save-goal-button"
-                className="flex-1 rounded-full px-6 py-3 font-semibold text-white transition-opacity active:scale-95"
-                style={{
-                  background: 'linear-gradient(135deg, var(--primary) 0%, var(--primary-container) 100%)',
-                  minHeight: '60px',
-                  opacity: addGoalSaving ? 0.6 : 1,
-                }}
-              >
-                {addGoalSaving ? 'Saving...' : 'Save Goal'}
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  setShowAddGoal(false);
-                  setAddGoalError(null);
-                  setNewGoalName('');
-                  setNewGoalTarget('');
-                }}
-                data-testid="cancel-goal-button"
-              className="flex-1 rounded-full px-6 py-3 font-semibold transition-colors"
-              style={{ minHeight: '60px', border: '1px solid var(--outline-variant)' }}
-              >
-                Cancel
-              </button>
-            </div>
-          </div>
-        )}
       </section>
 
       {/* Section C: Allowance Summary */}
