@@ -253,7 +253,11 @@ export interface Wallet {
   currentWeek: CurrentWeekAllowance;
 }
 
-/** Classify a jar by its (user-chosen) name — mirrors the SpendingJars UI. */
+/**
+ * Infer a jar's role from its name. Used as the default when a category has no
+ * explicit `kind` yet (legacy rows / inference at creation time); the stored
+ * `kind` is authoritative once set.
+ */
 export function classifyJar(name: string): JarKind {
   const k = name.toLowerCase().trim();
   if (k.includes('spend') || k.includes('buy')) return 'spend';
@@ -341,7 +345,9 @@ export async function computeWallet(
   let saveInflow = 0;
   let spendInflow = 0;
   const classified = cats.map((c) => {
-    const kind = classifyJar(c.name);
+    // Trust the stored role; fall back to name inference only for legacy rows
+    // that predate the `kind` column (default 'other').
+    const kind: JarKind = c.kind && c.kind !== 'other' ? c.kind : classifyJar(c.name);
     const inflow = inflowByName.get(c.name) ?? 0;
     if (kind === 'save') saveInflow = round2(saveInflow + inflow);
     if (kind === 'spend') spendInflow = round2(spendInflow + inflow);

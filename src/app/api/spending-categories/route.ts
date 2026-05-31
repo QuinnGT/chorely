@@ -4,13 +4,16 @@ import { ZodError } from 'zod';
 import { db } from '@/db';
 import { spendingCategories, categoryBalances } from '@/db/schema';
 import { spendingCategoriesConfigSchema } from '@/lib/validators';
+import { classifyJar } from '@/lib/allowance-week';
+
+type JarKind = 'spend' | 'save' | 'give' | 'other';
 
 // ─── Default categories when feature is first enabled ───────────────────────
 
-const DEFAULT_CATEGORIES = [
-  { name: 'Save', percentage: 40, sortOrder: 0 },
-  { name: 'Spend', percentage: 40, sortOrder: 1 },
-  { name: 'Give', percentage: 20, sortOrder: 2 },
+const DEFAULT_CATEGORIES: { name: string; percentage: number; sortOrder: number; kind: JarKind }[] = [
+  { name: 'Save', percentage: 40, sortOrder: 0, kind: 'save' },
+  { name: 'Spend', percentage: 40, sortOrder: 1, kind: 'spend' },
+  { name: 'Give', percentage: 20, sortOrder: 2, kind: 'give' },
 ];
 
 // ─── GET /api/spending-categories?kidId=X ───────────────────────────────────
@@ -47,6 +50,7 @@ export async function GET(request: Request): Promise<NextResponse> {
     const formatted = categories.map((cat) => ({
       id: cat.id,
       name: cat.name,
+      kind: cat.kind,
       percentage: cat.percentage,
       sortOrder: cat.sortOrder,
       balance: balanceMap.get(cat.id) ?? 0,
@@ -129,6 +133,8 @@ export async function PUT(request: Request): Promise<NextResponse> {
             name: c.name,
             percentage: c.percentage,
             sortOrder: i,
+            // Honor the explicit role; infer from the name only when omitted.
+            kind: (c.kind ?? classifyJar(c.name)) as JarKind,
           }));
 
     // Delete existing categories first (replace strategy)
@@ -147,6 +153,7 @@ export async function PUT(request: Request): Promise<NextResponse> {
           name: c.name,
           percentage: c.percentage,
           sortOrder: c.sortOrder,
+          kind: c.kind,
         }))
       )
       .returning();
@@ -163,6 +170,7 @@ export async function PUT(request: Request): Promise<NextResponse> {
     const formatted = inserted.map((cat) => ({
       id: cat.id,
       name: cat.name,
+      kind: cat.kind,
       percentage: cat.percentage,
       sortOrder: cat.sortOrder,
       balance: 0,

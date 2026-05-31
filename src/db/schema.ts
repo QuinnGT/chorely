@@ -155,6 +155,10 @@ export const spendingCategories = pgTable('spending_categories', {
   id: uuid('id').primaryKey().defaultRandom(),
   kidId: uuid('kid_id').notNull().references(() => kids.id, { onDelete: 'cascade' }),
   name: text('name').notNull(),
+  // The jar's role, independent of its display name. Drives which jar is the
+  // store balance ('spend') and which funds goals ('save'). Decoupling role
+  // from name means renaming a jar can't break those behaviors.
+  kind: text('kind', { enum: ['spend', 'save', 'give', 'other'] }).notNull().default('other'),
   percentage: integer('percentage').notNull(),
   sortOrder: integer('sort_order').notNull().default(0),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),

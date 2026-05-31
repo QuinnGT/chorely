@@ -133,6 +133,8 @@ export type UpdateSavingsGoalInput = z.infer<typeof updateSavingsGoalSchema>;
 export const spendingCategorySchema = z.object({
   name: z.string().min(1).max(50),
   percentage: z.number().int().min(1).max(100),
+  // Optional — the API infers it from the name when absent (legacy callers).
+  kind: z.enum(['spend', 'save', 'give', 'other']).optional(),
 });
 
 export const spendingCategoriesConfigSchema = z.object({
