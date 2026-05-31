@@ -7,6 +7,7 @@ import {
   createSavingsGoalSchema,
   updateSavingsGoalSchema,
 } from '@/lib/validators';
+import { computeWallet } from '@/lib/allowance-week';
 
 // ─── GET /api/savings-goals?kidId=X ─────────────────────────────────────────
 
@@ -25,11 +26,30 @@ export async function GET(request: Request): Promise<NextResponse> {
       .where(eq(savingsGoals.kidId, kidId))
       .orderBy(savingsGoals.createdAt);
 
-    const formatted = goals.map((goal) => ({
-      ...goal,
-      targetAmount: Number(goal.targetAmount),
-      currentAmount: Number(goal.currentAmount),
-    }));
+    // Enrich with the derived saved amount (manual + auto-fill from the Save
+    // jar) and a derived completion status. `currentAmount` is reported as the
+    // effective saved amount; `manualAmount` is what the kid can withdraw.
+    const wallet = await computeWallet(kidId);
+    const savedById = new Map(wallet.goals.map((g) => [g.id, g.savedAmount]));
+
+    const formatted = goals.map((goal) => {
+      const target = Number(goal.targetAmount);
+      const manualAmount = Number(goal.currentAmount);
+      const saved = savedById.get(goal.id) ?? manualAmount;
+      const status =
+        goal.status === 'archived'
+          ? 'archived'
+          : saved + 1e-9 >= target
+            ? 'completed'
+            : 'active';
+      return {
+        ...goal,
+        targetAmount: target,
+        currentAmount: saved,
+        manualAmount,
+        status,
+      };
+    });
 
     return NextResponse.json(formatted);
   } catch (error: unknown) {

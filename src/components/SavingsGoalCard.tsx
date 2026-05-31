@@ -6,13 +6,20 @@ interface SavingsGoal {
   id: string;
   name: string;
   targetAmount: number;
+  /** Effective saved amount (manual contributions + auto-fill). */
   currentAmount: number;
+  /** Money the kid put in themselves — the most they can withdraw. */
+  manualAmount?: number;
   status: 'active' | 'completed' | 'archived';
 }
 
 interface SavingsGoalCardProps {
   goals: SavingsGoal[];
+  /** Funds available to move into goals (wallet, or Save jar in jars mode). */
+  available?: number;
   onAddGoal?: (goal: Omit<SavingsGoal, 'id' | 'status'>) => void;
+  onContribute?: (goalId: string, amount: number) => void;
+  onWithdraw?: (goalId: string, amount: number) => void;
 }
 
 export type { SavingsGoal, SavingsGoalCardProps };
@@ -141,16 +148,168 @@ function AddGoalForm({ onSave, onCancel }: AddGoalFormProps) {
   );
 }
 
-export function SavingsGoalCard({ goals, onAddGoal }: SavingsGoalCardProps) {
+interface FundModalProps {
+  goal: SavingsGoal;
+  mode: 'contribute' | 'withdraw';
+  available: number;
+  onConfirm: (amount: number) => void;
+  onCancel: () => void;
+}
+
+function FundModal({ goal, mode, available, onConfirm, onCancel }: FundModalProps) {
+  const isContribute = mode === 'contribute';
+  const manual = goal.manualAmount ?? goal.currentAmount;
+  const remaining = Math.max(0, Math.round((goal.targetAmount - goal.currentAmount) * 100) / 100);
+  // Most you can add: limited by available funds and the room left to target.
+  const max = isContribute ? Math.min(available, remaining) : manual;
+
+  const [value, setValue] = useState('');
+  const [error, setError] = useState('');
+
+  const handleConfirm = () => {
+    const amount = parseFloat(value);
+    if (isNaN(amount) || amount <= 0) {
+      setError('Enter an amount');
+      return;
+    }
+    if (amount > max + 1e-9) {
+      setError(
+        isContribute
+          ? `You can add up to $${max.toFixed(2)}`
+          : `You can take out up to $${max.toFixed(2)}`
+      );
+      return;
+    }
+    onConfirm(Math.round(amount * 100) / 100);
+  };
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center p-6"
+      style={{ background: 'var(--glass-bg)', backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)' }}
+      onClick={onCancel}
+    >
+      <div
+        className="animate-bounce-in glass-card w-full max-w-sm flex flex-col gap-5 p-7"
+        style={{ border: '1px solid var(--glass-border)', borderRadius: '2rem' }}
+        onClick={(e) => e.stopPropagation()}
+      >
+        <h3 className="font-headline text-xl font-bold text-on-surface">
+          {isContribute ? 'Add money to' : 'Take money from'}{' '}
+          <span style={{ color: 'var(--primary)' }}>{goal.name}</span>
+        </h3>
+
+        <div className="flex justify-between text-sm font-medium text-on-surface-variant">
+          <span>{isContribute ? 'Available to save' : 'You put in'}</span>
+          <span className="font-bold text-on-surface">${max.toFixed(2)}</span>
+        </div>
+
+        <input
+          type="number"
+          autoFocus
+          value={value}
+          onChange={(e) => {
+            setValue(e.target.value);
+            setError('');
+          }}
+          placeholder="0.00"
+          min="0.01"
+          step="0.01"
+          className="w-full h-14 px-4 rounded-xl bg-surface-container-low border-0 focus:ring-2 focus:ring-primary outline-none text-lg"
+        />
+
+        {max > 0 && (
+          <button
+            type="button"
+            onClick={() => { setValue(max.toFixed(2)); setError(''); }}
+            className="self-start text-xs font-bold text-primary"
+          >
+            {isContribute ? 'Save the max' : 'Take it all'} (${max.toFixed(2)})
+          </button>
+        )}
+
+        {error && <p className="text-sm text-error font-medium">{error}</p>}
+
+        <div className="flex gap-3">
+          <button
+            type="button"
+            onClick={handleConfirm}
+            disabled={max <= 0}
+            className="flex-1 h-14 rounded-full bg-gradient-to-br from-primary to-primary-container text-on-primary font-bold shadow-lg active:scale-95 transition-transform disabled:opacity-40"
+          >
+            {isContribute ? 'Add' : 'Take Out'}
+          </button>
+          <button
+            type="button"
+            onClick={onCancel}
+            className="flex-1 h-14 rounded-full bg-surface-container text-on-surface-variant font-bold active:scale-95 transition-transform"
+          >
+            Cancel
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+export function SavingsGoalCard({
+  goals,
+  available = 0,
+  onAddGoal,
+  onContribute,
+  onWithdraw,
+}: SavingsGoalCardProps) {
   const [showAddForm, setShowAddForm] = useState(false);
+  const [fundModal, setFundModal] = useState<{ goal: SavingsGoal; mode: 'contribute' | 'withdraw' } | null>(null);
 
   const activeGoals = goals.filter((g) => g.status === 'active');
   const completedGoals = goals.filter((g) => g.status === 'completed');
   const visibleGoals = [...activeGoals, ...completedGoals];
 
+  const canFund = Boolean(onContribute || onWithdraw);
+
   const handleAddGoal = (goal: Omit<SavingsGoal, 'id' | 'status'>) => {
     onAddGoal?.(goal);
     setShowAddForm(false);
+  };
+
+  const handleFundConfirm = (amount: number) => {
+    if (!fundModal) return;
+    if (fundModal.mode === 'contribute') onContribute?.(fundModal.goal.id, amount);
+    else onWithdraw?.(fundModal.goal.id, amount);
+    setFundModal(null);
+  };
+
+  const renderGoalActions = (goal: SavingsGoal) => {
+    if (!canFund || goal.status === 'archived') return null;
+    const manual = goal.manualAmount ?? goal.currentAmount;
+    const isComplete = goal.currentAmount + 1e-9 >= goal.targetAmount;
+    return (
+      <div className="relative z-10 mt-4 flex gap-2">
+        {onContribute && (
+          <button
+            type="button"
+            onClick={() => setFundModal({ goal, mode: 'contribute' })}
+            disabled={isComplete || available <= 0}
+            className="flex-1 h-10 rounded-full bg-primary/10 text-primary font-bold text-xs flex items-center justify-center gap-1 active:scale-95 transition-transform disabled:opacity-40"
+          >
+            <span className="material-symbols-outlined text-base">add</span>
+            Add
+          </button>
+        )}
+        {onWithdraw && (
+          <button
+            type="button"
+            onClick={() => setFundModal({ goal, mode: 'withdraw' })}
+            disabled={manual <= 0}
+            className="flex-1 h-10 rounded-full bg-surface-container-high text-on-surface-variant font-bold text-xs flex items-center justify-center gap-1 active:scale-95 transition-transform disabled:opacity-40"
+          >
+            <span className="material-symbols-outlined text-base">remove</span>
+            Take out
+          </button>
+        )}
+      </div>
+    );
   };
 
   if (visibleGoals.length === 0 && !showAddForm) {
@@ -252,6 +411,8 @@ export function SavingsGoalCard({ goals, onAddGoal }: SavingsGoalCardProps) {
                   {isCompleted ? 'Goal Reached!' : `${Math.round(progress)}% reached`}
                 </p>
               </div>
+
+              {renderGoalActions(goal)}
             </div>
           );
         })}
@@ -261,6 +422,16 @@ export function SavingsGoalCard({ goals, onAddGoal }: SavingsGoalCardProps) {
         <div className="mt-6">
           <AddGoalForm onSave={handleAddGoal} onCancel={() => setShowAddForm(false)} />
         </div>
+      )}
+
+      {fundModal && (
+        <FundModal
+          goal={fundModal.goal}
+          mode={fundModal.mode}
+          available={available}
+          onConfirm={handleFundConfirm}
+          onCancel={() => setFundModal(null)}
+        />
       )}
     </section>
   );
