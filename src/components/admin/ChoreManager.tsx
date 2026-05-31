@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { EmojiPicker } from './EmojiPicker';
 import { suggestEmoji } from '@/lib/emoji-suggester';
+import type { ChoreFrequency, ChoreKind } from '@/lib/chore-types';
 
 interface KidRecord {
   id: string;
@@ -20,7 +21,10 @@ interface ChoreRecord {
   id: string;
   name: string;
   icon: string;
-  frequency: 'daily' | 'weekly';
+  frequency: ChoreFrequency;
+  kind: ChoreKind;
+  description: string | null;
+  rewardAmount: number;
   isActive: boolean;
   choreAssignments: ChoreAssignment[];
 }
@@ -28,7 +32,10 @@ interface ChoreRecord {
 interface ChoreFormData {
   name: string;
   icon: string;
-  frequency: 'daily' | 'weekly';
+  frequency: ChoreFrequency;
+  kind: ChoreKind;
+  description: string;
+  rewardAmount: string;
   assignedKidIds: string[];
 }
 
@@ -39,6 +46,9 @@ const EMPTY_FORM: ChoreFormData = {
   name: '',
   icon: DEFAULT_ICON,
   frequency: 'daily',
+  kind: 'standard',
+  description: '',
+  rewardAmount: '10.00',
   assignedKidIds: [],
 };
 
@@ -50,7 +60,6 @@ export function ChoreManager() {
   const [formData, setFormData] = useState<ChoreFormData>(EMPTY_FORM);
   const [formError, setFormError] = useState<string | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
-  const [showForm, setShowForm] = useState(false);
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
@@ -76,7 +85,7 @@ export function ChoreManager() {
     setError(null);
     try {
       const [choresRes, kidsRes] = await Promise.all([
-        fetch('/api/chores'),
+        fetch('/api/chores?includeInactive=true'),
         fetch('/api/kids'),
       ]);
       if (!choresRes.ok) throw new Error('Failed to fetch chores');
@@ -95,24 +104,18 @@ export function ChoreManager() {
 
   useEffect(() => { fetchData(); }, [fetchData]);
 
-  const handleOpenAdd = useCallback(() => {
-    setFormData(EMPTY_FORM);
-    setEditingId(null);
-    setFormError(null);
-    setShowForm(true);
-    iconManuallySetRef.current = false;
-  }, []);
-
   const handleOpenEdit = useCallback((chore: ChoreRecord) => {
     setFormData({
       name: chore.name,
       icon: chore.icon,
       frequency: chore.frequency,
+      kind: chore.kind,
+      description: chore.description ?? '',
+      rewardAmount: chore.rewardAmount.toFixed(2),
       assignedKidIds: chore.choreAssignments.map((a) => a.kidId),
     });
     setEditingId(chore.id);
     setFormError(null);
-    setShowForm(true);
     setOpenMenuId(null);
     iconManuallySetRef.current = true;
   }, []);
@@ -135,8 +138,18 @@ export function ChoreManager() {
     setPickerOpen(false);
   }, []);
 
+  const handleKindChange = useCallback((kind: ChoreKind) => {
+    setFormData((prev) => ({
+      ...prev,
+      kind,
+      frequency: kind === 'big_boss' ? 'weekly' : prev.frequency,
+      rewardAmount: kind === 'big_boss' && Number(prev.rewardAmount) <= 0
+        ? '10.00'
+        : prev.rewardAmount,
+    }));
+  }, []);
+
   const handleCancel = useCallback(() => {
-    setShowForm(false);
     setEditingId(null);
     setFormData(EMPTY_FORM);
     setFormError(null);
@@ -167,6 +180,14 @@ export function ChoreManager() {
       setFormError('Assign to at least one kid');
       return;
     }
+    const rewardAmount = Number(formData.rewardAmount);
+    if (
+      formData.kind === 'big_boss' &&
+      (!Number.isFinite(rewardAmount) || rewardAmount <= 0)
+    ) {
+      setFormError('Big Boss reward must be greater than 0');
+      return;
+    }
 
     setIsSaving(true);
     setFormError(null);
@@ -175,7 +196,14 @@ export function ChoreManager() {
       const payload = {
         name: formData.name.trim(),
         icon: formData.icon.trim(),
-        frequency: formData.frequency,
+        frequency: formData.kind === 'big_boss' ? 'weekly' : formData.frequency,
+        kind: formData.kind,
+        description: formData.kind === 'big_boss'
+          ? formData.description.trim() || null
+          : null,
+        rewardAmount: formData.kind === 'big_boss'
+          ? Math.round(rewardAmount * 100) / 100
+          : 0,
         assignedKidIds: formData.assignedKidIds,
       };
 
@@ -195,7 +223,6 @@ export function ChoreManager() {
         if (!res.ok) throw new Error('Failed to create chore');
       }
 
-      setShowForm(false);
       setEditingId(null);
       setFormData(EMPTY_FORM);
       await fetchData();
@@ -412,6 +439,46 @@ export function ChoreManager() {
                 />
               </div>
 
+              {/* Chore Type */}
+              <div>
+                <span
+                  className="mb-2 block text-sm font-medium"
+                  style={{ color: 'var(--on-surface-variant)' }}
+                >
+                  Chore Type
+                </span>
+                <div
+                  className="grid grid-cols-2 gap-1 rounded-full p-1"
+                  style={{ background: 'var(--surface-container-low)' }}
+                >
+                  {([
+                    { kind: 'standard' as const, label: 'Standard', icon: 'checklist' },
+                    { kind: 'big_boss' as const, label: 'Big Boss', icon: 'workspace_premium' },
+                  ]).map((option) => (
+                    <button
+                      key={option.kind}
+                      type="button"
+                      onClick={() => handleKindChange(option.kind)}
+                      className="flex items-center justify-center gap-2 rounded-full px-3 py-2 text-sm font-semibold transition-all"
+                      style={{
+                        minHeight: '48px',
+                        color: formData.kind === option.kind
+                          ? 'var(--on-primary)'
+                          : 'var(--on-surface-variant)',
+                        background: formData.kind === option.kind
+                          ? 'var(--primary)'
+                          : 'transparent',
+                      }}
+                    >
+                      <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>
+                        {option.icon}
+                      </span>
+                      {option.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
               {/* Frequency Toggle */}
               <div>
                 <span
@@ -420,31 +487,108 @@ export function ChoreManager() {
                 >
                   Frequency
                 </span>
-                <div
-                  className="flex rounded-full p-1"
-                  style={{ background: 'var(--surface-container-low)' }}
-                >
-                  {(['daily', 'weekly'] as const).map((freq) => (
-                    <button
-                      key={freq}
-                      type="button"
-                      onClick={() => setFormData((prev) => ({ ...prev, frequency: freq }))}
-                      className="flex-1 rounded-full py-2 text-sm font-semibold transition-all"
-                      style={{
-                        minHeight: '48px',
-                        color: formData.frequency === freq
-                          ? 'var(--on-primary)'
-                          : 'var(--on-surface-variant)',
-                        background: formData.frequency === freq
-                          ? 'var(--primary)'
-                          : 'transparent',
-                      }}
-                    >
-                      {freq.charAt(0).toUpperCase() + freq.slice(1)}
-                    </button>
-                  ))}
-                </div>
+                {formData.kind === 'big_boss' ? (
+                  <div
+                    className="flex min-h-12 items-center gap-2 rounded-full px-4 text-sm font-semibold"
+                    style={{
+                      background: 'var(--tertiary-container)',
+                      color: 'var(--on-tertiary-container)',
+                    }}
+                  >
+                    <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>
+                      event_repeat
+                    </span>
+                    Weekly
+                  </div>
+                ) : (
+                  <div
+                    className="flex rounded-full p-1"
+                    style={{ background: 'var(--surface-container-low)' }}
+                  >
+                    {(['daily', 'weekly'] as const).map((freq) => (
+                      <button
+                        key={freq}
+                        type="button"
+                        onClick={() => setFormData((prev) => ({ ...prev, frequency: freq }))}
+                        className="flex-1 rounded-full py-2 text-sm font-semibold transition-all"
+                        style={{
+                          minHeight: '48px',
+                          color: formData.frequency === freq
+                            ? 'var(--on-primary)'
+                            : 'var(--on-surface-variant)',
+                          background: formData.frequency === freq
+                            ? 'var(--primary)'
+                            : 'transparent',
+                        }}
+                      >
+                        {freq.charAt(0).toUpperCase() + freq.slice(1)}
+                      </button>
+                    ))}
+                  </div>
+                )}
               </div>
+
+              {formData.kind === 'big_boss' && (
+                <>
+                  <div>
+                    <label
+                      htmlFor="boss-description"
+                      className="mb-1 block text-sm font-medium"
+                      style={{ color: 'var(--on-surface-variant)' }}
+                    >
+                      Quest Details
+                    </label>
+                    <textarea
+                      id="boss-description"
+                      value={formData.description}
+                      onChange={(e) => setFormData((prev) => ({ ...prev, description: e.target.value }))}
+                      className="w-full resize-none rounded-3xl px-4 py-3 text-base outline-none"
+                      style={{
+                        background: 'var(--surface-container-low)',
+                        color: 'var(--on-surface)',
+                        border: '1px solid var(--outline-variant)',
+                        minHeight: '92px',
+                      }}
+                      maxLength={240}
+                      placeholder="e.g. Clean the garage with Dad"
+                    />
+                  </div>
+
+                  <div>
+                    <label
+                      htmlFor="boss-reward"
+                      className="mb-1 block text-sm font-medium"
+                      style={{ color: 'var(--on-surface-variant)' }}
+                    >
+                      Bonus Reward
+                    </label>
+                    <div className="relative">
+                      <span
+                        className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 font-semibold"
+                        style={{ color: 'var(--on-surface-variant)' }}
+                      >
+                        $
+                      </span>
+                      <input
+                        id="boss-reward"
+                        type="number"
+                        min="0.01"
+                        step="0.01"
+                        value={formData.rewardAmount}
+                        onChange={(e) => setFormData((prev) => ({ ...prev, rewardAmount: e.target.value }))}
+                        className="w-full rounded-full py-3 pl-8 pr-4 text-base outline-none"
+                        style={{
+                          background: 'var(--surface-container-low)',
+                          color: 'var(--on-surface)',
+                          border: '1px solid var(--outline-variant)',
+                          minHeight: '48px',
+                        }}
+                        placeholder="10.00"
+                      />
+                    </div>
+                  </div>
+                </>
+              )}
 
               {/* Assign To */}
               <div>
@@ -498,7 +642,7 @@ export function ChoreManager() {
                 >
                   {isSaving ? 'Saving\u2026' : editingId ? 'Update Chore' : 'Add Chore'}
                 </button>
-                {showForm && (
+                {editingId && (
                   <button
                     type="button"
                     onClick={handleCancel}
@@ -559,13 +703,27 @@ export function ChoreManager() {
 
                 {/* Info */}
                 <div className="flex-1">
-                  <div className="flex items-center gap-2">
+                  <div className="flex flex-wrap items-center gap-2">
                     <h4
                       className="font-headline text-base font-bold"
                       style={{ color: 'var(--on-surface)' }}
                     >
                       {chore.name}
                     </h4>
+                    {chore.kind === 'big_boss' && (
+                      <span
+                        className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-bold"
+                        style={{
+                          background: 'var(--tertiary-container)',
+                          color: 'var(--on-tertiary-container)',
+                        }}
+                      >
+                        <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>
+                          workspace_premium
+                        </span>
+                        Big Boss
+                      </span>
+                    )}
                     <span
                       className="rounded-full px-2 py-0.5 text-xs font-medium"
                       style={{
@@ -575,7 +733,27 @@ export function ChoreManager() {
                     >
                       {chore.frequency}
                     </span>
+                    {chore.kind === 'big_boss' && (
+                      <span
+                        className="rounded-full px-2 py-0.5 text-xs font-bold"
+                        style={{
+                          background: 'var(--primary-container)',
+                          color: 'var(--on-primary-container)',
+                        }}
+                      >
+                        ${chore.rewardAmount.toFixed(2)}
+                      </span>
+                    )}
                   </div>
+
+                  {chore.kind === 'big_boss' && chore.description && (
+                    <p
+                      className="mt-1 text-sm"
+                      style={{ color: 'var(--on-surface-variant)' }}
+                    >
+                      {chore.description}
+                    </p>
+                  )}
 
                   {/* Assigned Kids */}
                   <div className="mt-2 flex flex-wrap gap-1">

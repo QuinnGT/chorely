@@ -22,7 +22,15 @@ function makeDay(overrides: Partial<DayCell> = {}): DayCell {
 
 function makeDailyRow(days: DayCell[]): ChoreRow {
   return {
-    chore: { id: 'c1', name: 'Dishes', icon: '🍽️', frequency: 'daily' },
+    chore: {
+      id: 'c1',
+      name: 'Dishes',
+      icon: '🍽️',
+      frequency: 'daily',
+      kind: 'standard',
+      description: null,
+      rewardAmount: 0,
+    },
     assignmentId: 'a1',
     days,
   };
@@ -75,7 +83,7 @@ describe('AchievementBadges', () => {
     );
     const badge = screen.getByTestId('achievement-badge');
     expect(badge.className).toContain('grayscale');
-    expect(badge.className).toContain('opacity-50');
+    expect(badge.className).toContain('opacity-40');
     expect(screen.getByText('lock')).toBeInTheDocument();
   });
 

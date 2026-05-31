@@ -26,6 +26,7 @@ import { calculateAllowance, calculateStreak } from '@/lib/allowance-engine';
 import { loadAllowanceRules } from '@/lib/allowance-rules';
 import { getWeekStart, formatDate } from '@/lib/date-utils';
 import { splitEarnings } from '@/lib/spending-categories';
+import type { ChoreFrequency, ChoreKind } from '@/lib/chore-types';
 
 // ─── Chore / completion helpers ──────────────────────────────────────────────
 
@@ -58,33 +59,56 @@ export async function getCompletionsForWeek(assignmentIds: string[], weekStart: 
 
 export function buildCompletionRecords(
   completions: { date: string; completed: boolean; assignmentId: string }[],
-  assignments: { id: string; chore: { frequency: 'daily' | 'weekly' } }[]
+  assignments: { id: string; chore: { frequency: ChoreFrequency; kind: ChoreKind } }[]
 ) {
   const assignmentFreqMap = new Map(
-    assignments.map((a) => [a.id, a.chore.frequency])
+    assignments
+      .filter((a) => a.chore.kind !== 'big_boss')
+      .map((a) => [a.id, a.chore.frequency])
   );
 
-  return completions.map((c) => ({
-    date: c.date,
-    completed: c.completed,
-    frequency: assignmentFreqMap.get(c.assignmentId) ?? ('daily' as const),
-  }));
+  return completions
+    .filter((c) => assignmentFreqMap.has(c.assignmentId))
+    .map((c) => ({
+      date: c.date,
+      completed: c.completed,
+      frequency: assignmentFreqMap.get(c.assignmentId) ?? ('daily' as const),
+    }));
 }
 
 export function computeTotalExpected(
-  assignments: { chore: { frequency: 'daily' | 'weekly' } }[]
+  assignments: { chore: { frequency: ChoreFrequency; kind: ChoreKind } }[]
 ) {
   let total = 0;
   for (const a of assignments) {
+    if (a.chore.kind === 'big_boss') continue;
     total += a.chore.frequency === 'daily' ? 7 : 1;
   }
   return total;
 }
 
+export function calculateBigBossBonus(
+  completions: { completed: boolean; assignmentId: string }[],
+  assignments: { id: string; chore: { kind: ChoreKind; rewardAmount: string } }[]
+) {
+  const completedAssignmentIds = new Set(
+    completions.filter((c) => c.completed).map((c) => c.assignmentId)
+  );
+
+  let total = 0;
+  for (const assignment of assignments) {
+    if (assignment.chore.kind !== 'big_boss') continue;
+    if (!completedAssignmentIds.has(assignment.id)) continue;
+    total += Number(assignment.chore.rewardAmount);
+  }
+
+  return round2(total);
+}
+
 export async function buildStreakMap(kidId: string, today: Date) {
   const assignments = await getAssignmentsWithChores(kidId);
   const dailyAssignmentIds = assignments
-    .filter((a) => a.chore.frequency === 'daily')
+    .filter((a) => a.chore.kind === 'standard' && a.chore.frequency === 'daily')
     .map((a) => a.id);
 
   if (dailyAssignmentIds.length === 0) {
@@ -132,6 +156,7 @@ export async function buildStreakMap(kidId: string, today: Date) {
 export interface CurrentWeekAllowance {
   base: number;
   bonus: number;
+  bigBossBonus: number;
   total: number;
   completionRate: number;
   streakDays: number;
@@ -157,11 +182,14 @@ export async function computeCurrentWeekAllowance(
 
   const rules = await loadAllowanceRules(kidId);
   const result = calculateAllowance(completionRecords, totalExpected, streakDays, rules);
+  const bigBossBonus = calculateBigBossBonus(completions, assignments);
+  const bonus = round2(result.bonus + bigBossBonus);
 
   return {
     base: result.base,
-    bonus: result.bonus,
-    total: result.total,
+    bonus,
+    bigBossBonus,
+    total: round2(result.base + bonus),
     completionRate: result.completionRate,
     streakDays: result.streakDays,
     weekStart: weekStartStr,

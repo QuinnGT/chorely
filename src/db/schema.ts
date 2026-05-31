@@ -42,6 +42,9 @@ export const chores = pgTable('chores', {
   name: text('name').notNull(),
   icon: text('icon').notNull().default('📋'),
   frequency: text('frequency', { enum: ['daily', 'weekly'] }).notNull().default('daily'),
+  kind: text('kind', { enum: ['standard', 'big_boss'] }).notNull().default('standard'),
+  description: text('description'),
+  rewardAmount: numeric('reward_amount', { precision: 10, scale: 2 }).notNull().default('0.00'),
   isActive: boolean('is_active').notNull().default(true),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
 });

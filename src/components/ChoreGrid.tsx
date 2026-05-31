@@ -1,9 +1,8 @@
 'use client';
 
 import { useMemo, useState, useCallback, useEffect } from 'react';
-import { useChoreGrid, type ChoreRow, type DayCell } from '@/hooks/useChoreGrid';
+import { useChoreGrid, type ChoreRow } from '@/hooks/useChoreGrid';
 import { useToggleCompletion } from '@/hooks/useToggleCompletion';
-import { getDaysOfWeek, getDateLabel } from '@/lib/date-utils';
 import { ChoreCheckbox } from '@/components/ChoreCheckbox';
 
 interface ChoreGridProps {
@@ -18,7 +17,6 @@ interface ChoreRowDisplayProps {
   index: number;
 }
 
-const DAY_LABELS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 const DAY_INITIALS = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
 
 function getDayInitial(dateStr: string): string {
@@ -74,27 +72,51 @@ function ChoreRowDisplay({ row, onToggle, index }: ChoreRowDisplayProps) {
   );
 }
 
-function WeeklyBigBossQuest() {
+function WeeklyBigBossQuest({ row, onToggle, index }: ChoreRowDisplayProps) {
+  const cell = row.days[0];
+
+  if (!cell) return null;
+
+  const completed = cell.completed;
+  const reward = row.chore.rewardAmount.toFixed(2);
+
   return (
     <div 
-      className="mt-6 p-6 rounded-xl flex items-center justify-between text-white overflow-hidden relative animate-card-entrance"
+      className="relative mt-6 flex flex-col gap-4 overflow-hidden rounded-xl p-6 text-white animate-card-entrance sm:flex-row sm:items-center sm:justify-between"
       style={{ 
         background: 'linear-gradient(135deg, var(--primary) 0%, var(--primary-dim) 100%)',
-        animationDelay: '400ms'
+        animationDelay: `${400 + index * 80}ms`,
       }}
     >
-      <div className="z-10">
-        <h3 className="font-headline font-bold text-xl mb-1">Weekly Big Boss Quest</h3>
-        <p className="text-sm opacity-80">Clean the garage with Dad for +$10.00</p>
+      <div className="z-10 flex min-w-0 items-center gap-4">
+        <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-white/20 text-3xl shadow-sm">
+          {row.chore.icon}
+        </div>
+        <div className="min-w-0">
+          <p className="mb-1 text-xs font-bold uppercase opacity-80">
+            Weekly Big Boss Quest
+          </p>
+          <h3 className="mb-1 truncate font-headline text-xl font-bold">
+            {row.chore.name}
+          </h3>
+          <p className="line-clamp-2 text-sm opacity-85">
+            {(row.chore.description?.trim() || 'Finish the weekly boss quest')} for +${reward}
+          </p>
+        </div>
       </div>
       <button 
-        className="z-10 bg-white font-headline font-black px-6 py-3 rounded-full shadow-xl hover:scale-105 active:scale-[0.96] transition-all"
+        type="button"
+        onClick={() => onToggle(row.assignmentId, cell.date, !completed)}
+        disabled={cell.isFuture}
+        className="z-10 w-full rounded-full bg-white px-6 py-3 font-headline font-black shadow-xl transition-all hover:scale-105 active:scale-[0.96] disabled:cursor-not-allowed sm:w-auto"
         style={{ 
           color: 'var(--primary)',
-          minHeight: '60px'
+          minHeight: '60px',
+          minWidth: '148px',
+          opacity: cell.isFuture ? 0.6 : 1,
         }}
       >
-        START QUEST
+        {completed ? 'QUEST DONE' : 'COMPLETE QUEST'}
       </button>
       <span 
         className="material-symbols-outlined absolute -right-4 -bottom-4 text-9xl opacity-10 rotate-12"
@@ -119,8 +141,6 @@ export function ChoreGrid({ kidId, onToggleSuccess, rows: propRows }: ChoreGridP
     setLocalRows(rows);
   }, [rows]);
 
-  const days = useMemo(() => getDaysOfWeek(), []);
-
   const handleToggle = useCallback(
     (assignmentId: string, date: string, newState: boolean) => {
       setLocalRows((prev) =>
@@ -143,8 +163,18 @@ export function ChoreGrid({ kidId, onToggleSuccess, rows: propRows }: ChoreGridP
     [toggle, onToggleSuccess]
   );
 
-  const dailyRows = useMemo(() => localRows.filter((r) => r.chore.frequency === 'daily'), [localRows]);
-  const weeklyRows = useMemo(() => localRows.filter((r) => r.chore.frequency === 'weekly'), [localRows]);
+  const dailyRows = useMemo(
+    () => localRows.filter((r) => r.chore.kind === 'standard' && r.chore.frequency === 'daily'),
+    [localRows]
+  );
+  const weeklyRows = useMemo(
+    () => localRows.filter((r) => r.chore.kind === 'standard' && r.chore.frequency === 'weekly'),
+    [localRows]
+  );
+  const bossRows = useMemo(
+    () => localRows.filter((r) => r.chore.kind === 'big_boss'),
+    [localRows]
+  );
 
   if (isLoading) {
     return (
@@ -216,6 +246,7 @@ export function ChoreGrid({ kidId, onToggleSuccess, rows: propRows }: ChoreGridP
           style={{ backgroundColor: 'var(--surface-container)' }}
         >
           <button
+            type="button"
             onClick={() => setActiveTab('main')}
             className="px-4 py-1.5 rounded-full text-sm font-bold transition-all"
             style={{
@@ -227,6 +258,7 @@ export function ChoreGrid({ kidId, onToggleSuccess, rows: propRows }: ChoreGridP
             Main
           </button>
           <button
+            type="button"
             onClick={() => setActiveTab('bonus')}
             className="px-4 py-1.5 rounded-full text-sm font-bold transition-all"
             style={{
@@ -263,6 +295,8 @@ export function ChoreGrid({ kidId, onToggleSuccess, rows: propRows }: ChoreGridP
               index={index}
             />
           ))
+        ) : bossRows.length > 0 ? (
+          null
         ) : (
           <div className="py-8 text-center">
             <span
@@ -278,7 +312,14 @@ export function ChoreGrid({ kidId, onToggleSuccess, rows: propRows }: ChoreGridP
         )}
       </div>
 
-      <WeeklyBigBossQuest />
+      {bossRows.map((row, index) => (
+        <WeeklyBigBossQuest
+          key={row.assignmentId}
+          row={row}
+          onToggle={handleToggle}
+          index={index}
+        />
+      ))}
     </div>
   );
 }

@@ -31,7 +31,9 @@ const MILESTONES: MilestoneDefinition[] = [
     icon: '🌟',
     label: 'Full Day',
     check: (_completionRate, _streakDays, rows) => {
-      const dailyRows = rows.filter((r) => r.chore.frequency === 'daily');
+      const dailyRows = rows.filter(
+        (r) => r.chore.kind === 'standard' && r.chore.frequency === 'daily'
+      );
       if (dailyRows.length === 0) return false;
       return dailyRows.every((row) => {
         const todayCell = row.days.find((d) => d.isToday);

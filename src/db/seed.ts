@@ -70,6 +70,14 @@ async function seed(): Promise<void> {
     { name: 'Vacuum', icon: '🧽', frequency: 'weekly' as const },
     { name: 'Dust Shelves', icon: '✨', frequency: 'weekly' as const },
     { name: 'Mow the Lawn', icon: '🌿', frequency: 'weekly' as const },
+    {
+      name: 'Clean the Garage',
+      icon: '🚀',
+      frequency: 'weekly' as const,
+      kind: 'big_boss' as const,
+      description: 'Clean the garage with Dad',
+      rewardAmount: '10.00',
+    },
   ];
 
   const createdChores = await db
@@ -81,7 +89,7 @@ async function seed(): Promise<void> {
 
   const [
     makeBed, brushTeeth, homework, cleanRoom, setTable, feedDog,
-    takeOutTrash, vacuum, dustShelves, mowLawn,
+    takeOutTrash, vacuum, dustShelves, mowLawn, cleanGarage,
   ] = createdChores;
 
   // ─── Chore Assignments ────────────────────────────────────────────────────
@@ -97,6 +105,7 @@ async function seed(): Promise<void> {
     { choreId: cleanRoom.id, kidId: leo.id },
     { choreId: feedDog.id, kidId: leo.id },
     { choreId: vacuum.id, kidId: leo.id },
+    { choreId: cleanGarage.id, kidId: leo.id },
     // Maya (purple)
     { choreId: makeBed.id, kidId: maya.id },
     { choreId: brushTeeth.id, kidId: maya.id },
@@ -104,6 +113,7 @@ async function seed(): Promise<void> {
     { choreId: setTable.id, kidId: maya.id },
     { choreId: cleanRoom.id, kidId: maya.id },
     { choreId: dustShelves.id, kidId: maya.id },
+    { choreId: cleanGarage.id, kidId: maya.id },
     // Sam (amber)
     { choreId: makeBed.id, kidId: sam.id },
     { choreId: brushTeeth.id, kidId: sam.id },
@@ -112,6 +122,7 @@ async function seed(): Promise<void> {
     { choreId: feedDog.id, kidId: sam.id },
     { choreId: takeOutTrash.id, kidId: sam.id },
     { choreId: mowLawn.id, kidId: sam.id },
+    { choreId: cleanGarage.id, kidId: sam.id },
   ];
 
   const assignments = await db
@@ -154,14 +165,13 @@ async function seed(): Promise<void> {
               : null,
           });
         }
-      } else {
-        // Weekly: completed once this week (on a random day 1-3 ago)
-        const completedDay = 1 + Math.floor(Math.random() * 3);
+      } else if (chore.kind !== 'big_boss') {
+        // Weekly chores are tracked by the week-start date.
         completionRows.push({
           assignmentId: assignment.id,
-          date: daysAgo(completedDay),
+          date: weeksAgo(0),
           completed: true,
-          completedAt: new Date(Date.now() - completedDay * 86400000 + 36000000),
+          completedAt: new Date(Date.now() - 86400000 + 36000000),
         });
       }
     }

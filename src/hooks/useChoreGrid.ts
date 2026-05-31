@@ -2,12 +2,16 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { getDaysOfWeek, getWeekStart, formatDate, isToday } from '@/lib/date-utils';
+import type { ChoreFrequency, ChoreKind } from '@/lib/chore-types';
 
 interface ChoreFromApi {
   id: string;
   name: string;
   icon: string;
-  frequency: 'daily' | 'weekly';
+  frequency: ChoreFrequency;
+  kind: ChoreKind;
+  description: string | null;
+  rewardAmount: number;
   isActive: boolean;
   choreAssignments: {
     id: string;
@@ -32,7 +36,15 @@ export interface DayCell {
 }
 
 export interface ChoreRow {
-  chore: { id: string; name: string; icon: string; frequency: 'daily' | 'weekly' };
+  chore: {
+    id: string;
+    name: string;
+    icon: string;
+    frequency: ChoreFrequency;
+    kind: ChoreKind;
+    description: string | null;
+    rewardAmount: number;
+  };
   assignmentId: string;
   days: DayCell[];
 }
@@ -110,6 +122,9 @@ export function useChoreGrid(kidId: string): UseChoreGridResult {
               name: chore.name,
               icon: chore.icon,
               frequency: chore.frequency,
+              kind: chore.kind,
+              description: chore.description,
+              rewardAmount: chore.rewardAmount,
             },
             assignmentId: assignment.id,
             days: dayCells,
@@ -126,7 +141,8 @@ export function useChoreGrid(kidId: string): UseChoreGridResult {
         setRows(allRows);
 
         // Calculate completion rate
-        const allCells = allRows.flatMap((r) => r.days);
+        const baseAllowanceRows = allRows.filter((r) => r.chore.kind === 'standard');
+        const allCells = baseAllowanceRows.flatMap((r) => r.days);
         const nonFutureCells = allCells.filter((c) => !c.isFuture);
         const completedCells = nonFutureCells.filter((c) => c.completed);
         const rate =

@@ -12,7 +12,7 @@ import {
   chores,
   savingsGoals,
 } from '@/db/schema';
-import { formatDate } from '@/lib/date-utils';
+import { formatDate, getWeekStart } from '@/lib/date-utils';
 
 // ─── Internal executors ─────────────────────────────────────────────────────
 
@@ -25,6 +25,7 @@ async function executeCompleteChore(
       .select({
         assignmentId: choreAssignments.id,
         choreName: chores.name,
+        frequency: chores.frequency,
       })
       .from(choreAssignments)
       .innerJoin(chores, eq(choreAssignments.choreId, chores.id))
@@ -53,7 +54,10 @@ async function executeCompleteChore(
 
     console.error('[completeChore] Matched:', match.choreName, 'assignmentId:', match.assignmentId);
 
-    const today = formatDate(new Date());
+    const now = new Date();
+    const completionDate = match.frequency === 'weekly'
+      ? formatDate(getWeekStart(now))
+      : formatDate(now);
 
     const existing = await db
       .select()
@@ -61,14 +65,14 @@ async function executeCompleteChore(
       .where(
         and(
           eq(choreCompletions.assignmentId, match.assignmentId),
-          eq(choreCompletions.date, today)
+          eq(choreCompletions.date, completionDate)
         )
       );
 
     if (existing.length > 0 && existing[0].completed) {
       return {
         success: true,
-        message: `"${match.choreName}" is already marked as done for today.`,
+        message: `"${match.choreName}" is already marked as done for ${match.frequency === 'weekly' ? 'this week' : 'today'}.`,
       };
     }
 
@@ -87,7 +91,7 @@ async function executeCompleteChore(
         .insert(choreCompletions)
         .values({
           assignmentId: match.assignmentId,
-          date: today,
+          date: completionDate,
           completed: true,
           completedAt: new Date(),
         })
@@ -100,7 +104,7 @@ async function executeCompleteChore(
 
     return {
       success: true,
-      message: `Marked "${match.choreName}" as done for today.`,
+      message: `Marked "${match.choreName}" as done for ${match.frequency === 'weekly' ? 'this week' : 'today'}.`,
     };
   } catch (error: unknown) {
     console.error('completeChore tool error:', error);

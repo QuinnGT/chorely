@@ -15,12 +15,29 @@ const kidGenerator = fc.record({
   themeColor: fc.stringMatching(/^[0-9a-fA-F]{6}$/).map(s => `#${s}`),
 });
 
-const choreGenerator = fc.record({
+const assignedKidIdsGenerator = fc.array(fc.uuid(), { minLength: 1, maxLength: 5 });
+
+const standardChoreGenerator = fc.record({
   name: fc.string({ minLength: 1, maxLength: 100 }),
   icon: fc.constantFrom('🧹', '🛏️', '📚', '🦷', '🗑️', '🧽'),
   frequency: fc.constantFrom('daily' as const, 'weekly' as const),
-  assignedKidIds: fc.array(fc.uuid(), { minLength: 1, maxLength: 5 }),
+  kind: fc.constant('standard' as const),
+  description: fc.constant(null),
+  rewardAmount: fc.constant(0),
+  assignedKidIds: assignedKidIdsGenerator,
 });
+
+const bigBossChoreGenerator = fc.record({
+  name: fc.string({ minLength: 1, maxLength: 100 }),
+  icon: fc.constantFrom('🚀', '🏆', '⭐', '🧰'),
+  frequency: fc.constant('weekly' as const),
+  kind: fc.constant('big_boss' as const),
+  description: fc.option(fc.string({ minLength: 1, maxLength: 120 }), { nil: null }),
+  rewardAmount: fc.integer({ min: 1, max: 5000 }).map((cents) => cents / 100),
+  assignedKidIds: assignedKidIdsGenerator,
+});
+
+const choreGenerator = fc.oneof(standardChoreGenerator, bigBossChoreGenerator);
 
 const completionGenerator = fc.record({
   assignmentId: fc.uuid(),
@@ -131,6 +148,7 @@ describe('Property 29: Zod schemas accept valid inputs and reject invalid inputs
               name,
               icon: '🧹',
               frequency: badFreq,
+              kind: 'standard',
               assignedKidIds: kidIds,
             }),
           ).toThrow(ZodError);
@@ -138,6 +156,19 @@ describe('Property 29: Zod schemas accept valid inputs and reject invalid inputs
       ),
       { numRuns: 100 },
     );
+  });
+
+  test('createChoreSchema rejects big boss chores without a positive reward', () => {
+    expect(() =>
+      createChoreSchema.parse({
+        name: 'Clean Garage',
+        icon: '🚀',
+        frequency: 'weekly',
+        kind: 'big_boss',
+        rewardAmount: 0,
+        assignedKidIds: ['00000000-0000-4000-8000-000000000001'],
+      }),
+    ).toThrow(ZodError);
   });
 
   test('toggleCompletionSchema accepts valid completion inputs', () => {

@@ -5,6 +5,7 @@ import { useState, useEffect, useCallback } from 'react';
 interface CurrentWeek {
   base: number;
   bonus: number;
+  bigBossBonus: number;
   total: number;
   streakDays: number;
   completionRate: number;

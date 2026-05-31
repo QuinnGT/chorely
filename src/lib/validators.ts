@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { CHORE_FREQUENCIES, CHORE_KINDS } from '@/lib/chore-types';
 
 // ─── Kid schemas ────────────────────────────────────────────────────────────
 
@@ -18,17 +19,29 @@ export type UpdateKidInput = z.infer<typeof updateKidSchema>;
 export const createChoreSchema = z.object({
   name: z.string().min(1, 'Name is required').max(100),
   icon: z.string().min(1).max(10).default('📋'),
-  frequency: z.enum(['daily', 'weekly']).default('daily'),
+  frequency: z.enum(CHORE_FREQUENCIES).default('daily'),
+  kind: z.enum(CHORE_KINDS).default('standard'),
+  description: z.string().max(240).nullable().optional(),
+  rewardAmount: z.number().nonnegative().multipleOf(0.01).default(0),
   assignedKidIds: z.array(z.string().uuid()).min(1, 'Must assign to at least one kid'),
-});
+}).refine(
+  (data) => data.kind !== 'big_boss' || data.rewardAmount > 0,
+  { message: 'Big Boss reward must be greater than 0', path: ['rewardAmount'] }
+);
 
 export const updateChoreSchema = z.object({
   name: z.string().min(1).max(100).optional(),
   icon: z.string().min(1).max(10).optional(),
-  frequency: z.enum(['daily', 'weekly']).optional(),
+  frequency: z.enum(CHORE_FREQUENCIES).optional(),
+  kind: z.enum(CHORE_KINDS).optional(),
+  description: z.string().max(240).nullable().optional(),
+  rewardAmount: z.number().nonnegative().multipleOf(0.01).optional(),
   isActive: z.boolean().optional(),
   assignedKidIds: z.array(z.string().uuid()).optional(),
-});
+}).refine(
+  (data) => data.kind !== 'big_boss' || data.rewardAmount === undefined || data.rewardAmount > 0,
+  { message: 'Big Boss reward must be greater than 0', path: ['rewardAmount'] }
+);
 
 export type CreateChoreInput = z.infer<typeof createChoreSchema>;
 export type UpdateChoreInput = z.infer<typeof updateChoreSchema>;

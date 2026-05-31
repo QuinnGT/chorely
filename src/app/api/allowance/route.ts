@@ -10,6 +10,7 @@ import {
   getCompletionsForWeek,
   buildCompletionRecords,
   computeTotalExpected,
+  calculateBigBossBonus,
   buildStreakMap,
   computeWallet,
 } from '@/lib/allowance-week';
@@ -91,6 +92,8 @@ export async function POST(request: Request): Promise<NextResponse> {
 
     const rules = await loadAllowanceRules(kidId);
     const result = calculateAllowance(completionRecords, totalExpected, streakDays, rules);
+    const bigBossBonus = calculateBigBossBonus(completions, assignments);
+    const bonus = Math.round((result.bonus + bigBossBonus) * 100) / 100;
 
     // Upsert: update if exists, insert otherwise
     const existing = await db
@@ -109,7 +112,7 @@ export async function POST(request: Request): Promise<NextResponse> {
         .update(allowanceLedger)
         .set({
           earned: String(result.base),
-          bonusEarned: String(result.bonus),
+          bonusEarned: String(bonus),
         })
         .where(eq(allowanceLedger.id, existing[0].id))
         .returning();
@@ -120,7 +123,7 @@ export async function POST(request: Request): Promise<NextResponse> {
           kidId,
           weekStart,
           earned: String(result.base),
-          bonusEarned: String(result.bonus),
+          bonusEarned: String(bonus),
         })
         .returning();
     }
