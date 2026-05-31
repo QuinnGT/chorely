@@ -13,10 +13,15 @@ export default function GoalsPage() {
   const { selectedKid, isHydrated } = useKid();
   const kidId = selectedKid?.id ?? '';
 
-  const { currentWeek, history } = useAllowance(kidId);
+  const { currentWeek, history, wallet, refetch: refetchAllowance } = useAllowance(kidId);
 
   const [savingsGoals, setSavingsGoals] = useState<SavingsGoal[]>([]);
-  const [spendingCategories, setSpendingCategories] = useState<SpendingCategory[]>([]);
+
+  // Jars are derived from the wallet (balances reconcile live — no separate fetch).
+  const spendingCategories: SpendingCategory[] = useMemo(
+    () => (wallet?.jars ?? []).map((j) => ({ name: j.name, balance: j.balance, percentage: j.percentage })),
+    [wallet]
+  );
 
   const fetchSavingsGoals = useCallback(async () => {
     if (!kidId) return;
@@ -24,11 +29,12 @@ export default function GoalsPage() {
       const res = await fetch(`/api/savings-goals?kidId=${kidId}`);
       if (res.ok) {
         const data = await res.json();
-        const mapped = data.map((g: { id: string; name: string; targetAmount: string; currentAmount: string; status: string }) => ({
+        const mapped = data.map((g: { id: string; name: string; targetAmount: number; currentAmount: number; manualAmount?: number; status: string }) => ({
           id: g.id,
           name: g.name,
-          targetAmount: parseFloat(g.targetAmount),
-          currentAmount: parseFloat(g.currentAmount),
+          targetAmount: Number(g.targetAmount),
+          currentAmount: Number(g.currentAmount),
+          manualAmount: Number(g.manualAmount ?? g.currentAmount),
           status: g.status as 'active' | 'completed' | 'archived',
         }));
         setSavingsGoals(mapped);
@@ -38,40 +44,9 @@ export default function GoalsPage() {
     }
   }, [kidId]);
 
-  const fetchSpendingCategories = useCallback(async () => {
-    if (!kidId) return;
-    try {
-      const res = await fetch(`/api/spending-categories?kidId=${kidId}`);
-      if (res.ok) {
-        const data = await res.json();
-        if (data.enabled && Array.isArray(data.categories)) {
-          const parsed: Array<{ name: string; balance: number; percentage: number }> = data.categories.map(
-            (c: { name: string; balance: string | number }) => ({
-              name: c.name,
-              balance: typeof c.balance === 'string' ? parseFloat(c.balance) : c.balance,
-              percentage: 0,
-            })
-          );
-          const totalBalance = parsed.reduce((sum: number, c) => sum + c.balance, 0);
-          if (totalBalance > 0) {
-            for (const c of parsed) {
-              c.percentage = Math.round((c.balance / totalBalance) * 100);
-            }
-          }
-          setSpendingCategories(parsed);
-        } else {
-          setSpendingCategories([]);
-        }
-      }
-    } catch {
-      // Silently fail
-    }
-  }, [kidId]);
-
   useEffect(() => {
     fetchSavingsGoals();
-    fetchSpendingCategories();
-  }, [fetchSavingsGoals, fetchSpendingCategories]);
+  }, [fetchSavingsGoals]);
 
   const handleCreateGoal = useCallback(
     async (goal: { name: string; targetAmount: number }) => {
@@ -90,6 +65,35 @@ export default function GoalsPage() {
       }
     },
     [kidId, fetchSavingsGoals],
+  );
+
+  const moveGoalFunds = useCallback(
+    async (goalId: string, amount: number, action: 'contribute' | 'withdraw') => {
+      try {
+        const res = await fetch('/api/savings-goals/contribute', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ goalId, amount, action }),
+        });
+        if (res.ok) {
+          fetchSavingsGoals();
+          refetchAllowance();
+        }
+      } catch {
+        // Silently fail
+      }
+    },
+    [fetchSavingsGoals, refetchAllowance],
+  );
+
+  const handleContribute = useCallback(
+    (goalId: string, amount: number) => moveGoalFunds(goalId, amount, 'contribute'),
+    [moveGoalFunds],
+  );
+
+  const handleWithdraw = useCallback(
+    (goalId: string, amount: number) => moveGoalFunds(goalId, amount, 'withdraw'),
+    [moveGoalFunds],
   );
 
   const weeklyTotal = currentWeek?.total ?? 0;
@@ -116,8 +120,41 @@ export default function GoalsPage() {
     return null;
   }
 
+  const goalAvailable = wallet?.goalAvailable ?? 0;
+  const totalHoldings = wallet?.totalHoldings ?? 0;
+
   return (
     <div className="max-w-[1024px] mx-auto">
+      {/* Balance header */}
+      <section className="mb-8 animate-card-entrance">
+        <div className="glass-card flex items-center justify-between rounded-2xl px-6 py-4">
+          <div className="flex items-center gap-3">
+            <span
+              className="material-symbols-outlined text-3xl text-primary"
+              style={{ fontVariationSettings: "'FILL' 1" }}
+            >
+              account_balance_wallet
+            </span>
+            <div>
+              <p className="text-[10px] font-bold uppercase tracking-widest text-on-surface-variant">
+                {wallet?.mode === 'jars' ? 'Save jar — ready for goals' : 'Available to save'}
+              </p>
+              <p className="font-headline text-2xl font-black text-on-surface">
+                ${goalAvailable.toFixed(2)}
+              </p>
+            </div>
+          </div>
+          <div className="text-right">
+            <p className="text-[10px] font-bold uppercase tracking-widest text-on-surface-variant">
+              Total saved up
+            </p>
+            <p className="font-headline text-lg font-black" style={{ color: 'var(--primary)' }}>
+              ${totalHoldings.toFixed(2)}
+            </p>
+          </div>
+        </div>
+      </section>
+
       {/* Section A: My Money Jars */}
       {spendingCategories.length > 0 && (
         <section className="mb-12 animate-card-entrance" style={{ animationDelay: '0ms' }}>
@@ -130,7 +167,13 @@ export default function GoalsPage() {
       {/* Section B: Savings Goals */}
       <section className="mb-12 animate-card-entrance" style={{ animationDelay: '100ms' }}>
         <ErrorBoundary>
-          <SavingsGoalCard goals={savingsGoals} onAddGoal={handleCreateGoal} />
+          <SavingsGoalCard
+            goals={savingsGoals}
+            available={goalAvailable}
+            onAddGoal={handleCreateGoal}
+            onContribute={handleContribute}
+            onWithdraw={handleWithdraw}
+          />
         </ErrorBoundary>
       </section>
 

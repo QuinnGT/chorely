@@ -9,6 +9,13 @@ vi.mock('@/db', () => ({
   },
 }));
 
+// GET enriches goals with derived saved amounts via computeWallet; mock it so
+// the route's formatting logic can be tested in isolation. Empty `goals` means
+// each goal falls back to its manual currentAmount.
+vi.mock('@/lib/allowance-week', () => ({
+  computeWallet: vi.fn().mockResolvedValue({ goals: [] }),
+}));
+
 import { GET, POST, PATCH } from '../route';
 import { db } from '@/db';
 

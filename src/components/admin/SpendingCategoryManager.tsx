@@ -9,10 +9,29 @@ interface KidRecord {
   themeColor: string;
 }
 
+type JarKind = 'spend' | 'save' | 'give' | 'other';
+
+const JAR_KIND_OPTIONS: { value: JarKind; label: string }[] = [
+  { value: 'spend', label: 'Spend (store)' },
+  { value: 'save', label: 'Save (goals)' },
+  { value: 'give', label: 'Give' },
+  { value: 'other', label: 'Other' },
+];
+
+/** Suggest a role from the jar name; the stored kind is authoritative once set. */
+function inferKind(name: string): JarKind {
+  const k = name.toLowerCase().trim();
+  if (k.includes('spend') || k.includes('buy')) return 'spend';
+  if (k.includes('save') || k.includes('bank')) return 'save';
+  if (k.includes('give') || k.includes('share') || k.includes('donate')) return 'give';
+  return 'other';
+}
+
 interface SpendingCategory {
   id: string;
   kidId: string;
   name: string;
+  kind: JarKind;
   balance: number;
   percentage: number;
   active: boolean;
@@ -22,12 +41,13 @@ interface CategoryFormItem {
   name: string;
   percentage: string;
   active: boolean;
+  kind: JarKind;
 }
 
 const DEFAULT_CATEGORIES: CategoryFormItem[] = [
-  { name: 'Save', percentage: '40', active: true },
-  { name: 'Spend', percentage: '40', active: true },
-  { name: 'Give', percentage: '20', active: true },
+  { name: 'Save', percentage: '40', active: true, kind: 'save' },
+  { name: 'Spend', percentage: '40', active: true, kind: 'spend' },
+  { name: 'Give', percentage: '20', active: true, kind: 'give' },
 ];
 
 const JAR_ICONS: Record<string, string> = {
@@ -99,7 +119,12 @@ export function SpendingCategoryManager({ kidId }: SpendingCategoryManagerProps)
       setCategories(cats);
       setEnabled(cats.length > 0);
       setFormItems(cats.length > 0
-        ? cats.map((c) => ({ name: c.name, percentage: String(c.percentage), active: c.active !== false }))
+        ? cats.map((c) => ({
+            name: c.name,
+            percentage: String(c.percentage),
+            active: c.active !== false,
+            kind: c.kind ?? inferKind(c.name),
+          }))
         : DEFAULT_CATEGORIES
       );
     } catch (err: unknown) {
@@ -153,7 +178,7 @@ export function SpendingCategoryManager({ kidId }: SpendingCategoryManagerProps)
   }, []);
 
   const handleAddItem = useCallback(() => {
-    setFormItems((prev) => [...prev, { name: '', percentage: '', active: true }]);
+    setFormItems((prev) => [...prev, { name: '', percentage: '', active: true, kind: 'other' }]);
   }, []);
 
   const handleRemoveItem = useCallback((index: number) => {
@@ -181,6 +206,7 @@ export function SpendingCategoryManager({ kidId }: SpendingCategoryManagerProps)
       name: item.name.trim(),
       percentage: parseInt(item.percentage, 10),
       active: item.active,
+      kind: item.kind,
     }));
 
     for (const cat of parsed) {
@@ -480,11 +506,15 @@ export function SpendingCategoryManager({ kidId }: SpendingCategoryManagerProps)
           }}
         >
           <h4
-            className="mb-4 font-headline text-lg font-bold"
+            className="mb-1 font-headline text-lg font-bold"
             style={{ color: 'var(--on-surface)' }}
           >
             Edit Categories
           </h4>
+          <p className="mb-4 text-xs" style={{ color: 'var(--on-surface-variant)' }}>
+            The <strong>Spend</strong> jar is the store balance; the <strong>Save</strong> jar funds goals.
+            A jar&apos;s role comes from its dropdown, so you can rename it freely.
+          </p>
 
           <div className="flex flex-col gap-3">
             {formItems.map((item, index) => {
@@ -516,6 +546,24 @@ export function SpendingCategoryManager({ kidId }: SpendingCategoryManagerProps)
                       minHeight: '48px',
                     }}
                   />
+
+                  {/* Role (kind) — independent of the name so renaming is safe */}
+                  <select
+                    value={item.kind}
+                    onChange={(e) => handleUpdateItem(index, 'kind', e.target.value as JarKind)}
+                    aria-label={`Role for ${item.name || 'category'}`}
+                    className="rounded-full px-3 py-2 text-sm outline-none"
+                    style={{
+                      background: 'var(--surface-container-lowest)',
+                      color: 'var(--on-surface)',
+                      border: '1px solid var(--outline-variant)',
+                      minHeight: '48px',
+                    }}
+                  >
+                    {JAR_KIND_OPTIONS.map((opt) => (
+                      <option key={opt.value} value={opt.value}>{opt.label}</option>
+                    ))}
+                  </select>
 
                   {/* Percentage Input */}
                   <div className="flex items-center gap-1">

@@ -280,17 +280,17 @@ async function seed(): Promise<void> {
   // ─── Spending Categories (Money Jars) ─────────────────────────────────────
   const spendingCatRows = [
     // Leo (teal)
-    { kidId: leo.id, name: 'Save', percentage: 40, sortOrder: 0 },
-    { kidId: leo.id, name: 'Spend', percentage: 45, sortOrder: 1 },
-    { kidId: leo.id, name: 'Give', percentage: 15, sortOrder: 2 },
+    { kidId: leo.id, name: 'Save', percentage: 40, sortOrder: 0, kind: 'save' as const },
+    { kidId: leo.id, name: 'Spend', percentage: 45, sortOrder: 1, kind: 'spend' as const },
+    { kidId: leo.id, name: 'Give', percentage: 15, sortOrder: 2, kind: 'give' as const },
     // Maya (purple)
-    { kidId: maya.id, name: 'Save', percentage: 60, sortOrder: 0 },
-    { kidId: maya.id, name: 'Spend', percentage: 30, sortOrder: 1 },
-    { kidId: maya.id, name: 'Give', percentage: 10, sortOrder: 2 },
+    { kidId: maya.id, name: 'Save', percentage: 60, sortOrder: 0, kind: 'save' as const },
+    { kidId: maya.id, name: 'Spend', percentage: 30, sortOrder: 1, kind: 'spend' as const },
+    { kidId: maya.id, name: 'Give', percentage: 10, sortOrder: 2, kind: 'give' as const },
     // Sam (amber)
-    { kidId: sam.id, name: 'Save', percentage: 35, sortOrder: 0 },
-    { kidId: sam.id, name: 'Spend', percentage: 50, sortOrder: 1 },
-    { kidId: sam.id, name: 'Give', percentage: 15, sortOrder: 2 },
+    { kidId: sam.id, name: 'Save', percentage: 35, sortOrder: 0, kind: 'save' as const },
+    { kidId: sam.id, name: 'Spend', percentage: 50, sortOrder: 1, kind: 'spend' as const },
+    { kidId: sam.id, name: 'Give', percentage: 15, sortOrder: 2, kind: 'give' as const },
   ];
 
   const createdCategories = await db
