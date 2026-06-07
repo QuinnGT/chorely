@@ -30,8 +30,16 @@ services:
       - "3000:3000"
     environment:
       DATABASE_URL: postgresql://chorely:chorely@db:5432/chorely
+      DEFAULT_ADMIN_PIN: ${DEFAULT_ADMIN_PIN:-1234}
       OPENROUTER_API_KEY: ${OPENROUTER_API_KEY:-}
       OLLAMA_BASE_URL: ${OLLAMA_BASE_URL:-http://host.docker.internal:11434}
+      AVATAR_MODEL: ${AVATAR_MODEL:-}
+      AVATAR_MODEL_FAST: ${AVATAR_MODEL_FAST:-}
+      MEM0_API_KEY: ${MEM0_API_KEY:-}
+      ELEVENLABS_API_KEY: ${ELEVENLABS_API_KEY:-}
+      AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID:-}
+      AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY:-}
+      AWS_REGION: ${AWS_REGION:-}
     depends_on:
       db:
         condition: service_healthy

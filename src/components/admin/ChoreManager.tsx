@@ -1,8 +1,10 @@
 'use client';
 
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
-import { EmojiPicker } from './EmojiPicker';
-import { suggestEmoji } from '@/lib/emoji-suggester';
+import { IconPicker } from './IconPicker';
+import { suggestIcon, DEFAULT_CHORE_ICON } from '@/lib/icon-catalog';
+import { ChoreIcon } from '@/components/ChoreIcon';
+import { shouldOpenMenuUp } from '@/lib/menu-position';
 import type { ChoreFrequency, ChoreKind } from '@/lib/chore-types';
 
 interface KidRecord {
@@ -39,8 +41,19 @@ interface ChoreFormData {
   assignedKidIds: string[];
 }
 
-const QUICK_EMOJIS = ['\uD83E\uDDF9', '\uD83E\uDDFC', '\uD83D\uDEBF', '\uD83D\uDC1F', '\uD83C\uDF3F', '\uD83C\uDFE0', '\uD83D\uDD28', '\uD83E\uDDFB', '\uD83C\uDF81', '\u2B50'];
-const DEFAULT_ICON = '\uD83D\uDCCB';
+const QUICK_ICONS = [
+  'mdi:broom',
+  'mdi:basket',
+  'mdi:vacuum',
+  'mdi:silverware-clean',
+  'mdi:dog',
+  'mdi:sprout',
+  'mdi:bed',
+  'mdi:trash-can-outline',
+  'mdi:gift',
+  'mdi:star',
+];
+const DEFAULT_ICON = DEFAULT_CHORE_ICON;
 
 const EMPTY_FORM: ChoreFormData = {
   name: '',
@@ -63,12 +76,14 @@ export function ChoreManager() {
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
+  // Which way the row's "more" menu opens, so it stays on-screen near the page bottom.
+  const [openMenuDir, setOpenMenuDir] = useState<'down' | 'up'>('down');
   const [pickerOpen, setPickerOpen] = useState(false);
   // Tracks whether the user has picked an icon explicitly; if so, we stop
   // auto-suggesting from the name. Reset on Add / set on Edit.
   const iconManuallySetRef = useRef(false);
 
-  const recentEmojis = useMemo(() => {
+  const recentIcons = useMemo(() => {
     const out: string[] = [];
     const seen = new Set<string>();
     for (const c of chores) {
@@ -124,7 +139,7 @@ export function ChoreManager() {
     setFormData((prev) => {
       const next = { ...prev, name: nextName };
       if (!iconManuallySetRef.current) {
-        const suggestion = suggestEmoji(nextName);
+        const suggestion = suggestIcon(nextName);
         if (suggestion) next.icon = suggestion;
         else next.icon = DEFAULT_ICON;
       }
@@ -137,6 +152,17 @@ export function ChoreManager() {
     setFormData((prev) => ({ ...prev, icon }));
     setPickerOpen(false);
   }, []);
+
+  // Toggle the row menu, opening it upward when there isn't room below the button.
+  const handleToggleMenu = useCallback((choreId: string, btn: HTMLElement) => {
+    if (openMenuId === choreId) {
+      setOpenMenuId(null);
+      return;
+    }
+    setOpenMenuDir(shouldOpenMenuUp(btn) ? 'up' : 'down');
+    setConfirmDeleteId(null);
+    setOpenMenuId(choreId);
+  }, [openMenuId]);
 
   const handleKindChange = useCallback((kind: ChoreKind) => {
     setFormData((prev) => ({
@@ -361,7 +387,7 @@ export function ChoreManager() {
                 <div className="flex items-center gap-2">
                   <div className="no-scrollbar flex flex-1 gap-2 overflow-x-auto pb-1">
                     {/* Current selection always pinned first if not in quick set */}
-                    {!QUICK_EMOJIS.includes(formData.icon) && (
+                    {!QUICK_ICONS.includes(formData.icon) && (
                       <button
                         key={`current-${formData.icon}`}
                         type="button"
@@ -369,29 +395,33 @@ export function ChoreManager() {
                         className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-xl"
                         style={{
                           background: 'var(--secondary-container)',
+                          color: 'var(--on-secondary-container)',
                           border: '2px solid var(--secondary)',
                         }}
-                        aria-label="Current emoji — tap to change"
+                        aria-label="Current icon — tap to change"
                       >
-                        {formData.icon}
+                        <ChoreIcon value={formData.icon} />
                       </button>
                     )}
-                    {QUICK_EMOJIS.map((emoji) => (
+                    {QUICK_ICONS.map((iconId) => (
                       <button
-                        key={emoji}
+                        key={iconId}
                         type="button"
-                        onClick={() => handlePickIcon(emoji)}
+                        onClick={() => handlePickIcon(iconId)}
                         className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-xl transition-transform active:scale-90"
                         style={{
-                          background: formData.icon === emoji
+                          background: formData.icon === iconId
                             ? 'var(--secondary-container)'
                             : 'var(--surface-container-low)',
-                          border: formData.icon === emoji
+                          color: formData.icon === iconId
+                            ? 'var(--on-secondary-container)'
+                            : 'var(--on-surface)',
+                          border: formData.icon === iconId
                             ? '2px solid var(--secondary)'
                             : '2px solid transparent',
                         }}
                       >
-                        {emoji}
+                        <ChoreIcon value={iconId} />
                       </button>
                     ))}
                   </div>
@@ -404,7 +434,7 @@ export function ChoreManager() {
                       color: 'var(--on-surface-variant)',
                       border: '1px solid var(--outline-variant)',
                     }}
-                    aria-label="Browse all emojis"
+                    aria-label="Browse all icons"
                   >
                     <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>
                       search
@@ -698,8 +728,10 @@ export function ChoreManager() {
                   animationFillMode: 'backwards',
                 }}
               >
-                {/* Emoji */}
-                <span className="mt-1 text-2xl">{chore.icon}</span>
+                {/* Icon */}
+                <span className="mt-1 text-2xl" style={{ color: 'var(--on-surface)' }}>
+                  <ChoreIcon value={chore.icon} />
+                </span>
 
                 {/* Info */}
                 <div className="flex-1">
@@ -779,7 +811,7 @@ export function ChoreManager() {
                 <div className="relative">
                   <button
                     type="button"
-                    onClick={() => setOpenMenuId(openMenuId === chore.id ? null : chore.id)}
+                    onClick={(e) => handleToggleMenu(chore.id, e.currentTarget)}
                     className="flex h-10 w-10 items-center justify-center rounded-full transition-colors active:bg-gray-100"
                     style={{ color: 'var(--on-surface-variant)' }}
                     aria-label="More options"
@@ -791,7 +823,9 @@ export function ChoreManager() {
 
                   {openMenuId === chore.id && (
                     <div
-                      className="animate-bounce-in absolute right-0 top-12 z-10 flex w-40 flex-col rounded-2xl py-2"
+                      className={`animate-bounce-in absolute right-0 z-20 flex w-40 flex-col rounded-2xl py-2 ${
+                        openMenuDir === 'up' ? 'bottom-12' : 'top-12'
+                      }`}
                       style={{
                         background: 'var(--surface-container-lowest)',
                         border: '1px solid var(--surface-container-high)',
@@ -854,10 +888,10 @@ export function ChoreManager() {
         </div>
       </div>
 
-      <EmojiPicker
+      <IconPicker
         open={pickerOpen}
         selected={formData.icon}
-        recent={recentEmojis}
+        recent={recentIcons}
         onSelect={handlePickIcon}
         onClose={() => setPickerOpen(false)}
       />

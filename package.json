@@ -10,12 +10,15 @@
     "start": "next start",
     "lint": "eslint",
     "test": "vitest --run",
+    "icons:gen": "node scripts/gen-chore-icons.mjs",
     "db:push": "pnpm exec dotenv -e .env.local -- pnpm drizzle-kit push",
-    "db:seed": "pnpm tsx src/db/seed.ts"
+    "db:seed": "pnpm tsx src/db/seed.ts",
+    "db:admin-pin": "node scripts/seed-admin-pin.mjs"
   },
   "dependencies": {
     "@ai-sdk/openai": "^3.0.41",
     "@ai-sdk/react": "^3.0.118",
+    "@iconify/react": "^6.0.2",
     "@mem0/vercel-ai-provider": "^2.0.5",
     "@openrouter/ai-sdk-provider": "^2.3.3",
     "ai": "^6.0.116",
@@ -29,6 +32,9 @@
     "zod": "^4.3.6"
   },
   "devDependencies": {
+    "@iconify/json": "^2.2.481",
+    "@iconify/types": "^2.0.0",
+    "@iconify/utils": "^3.1.3",
     "@tailwindcss/postcss": "^4",
     "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/react": "^16.3.2",

@@ -40,7 +40,7 @@ export const kidsRelations = relations(kids, ({ many, one }) => ({
 export const chores = pgTable('chores', {
   id: uuid('id').primaryKey().defaultRandom(),
   name: text('name').notNull(),
-  icon: text('icon').notNull().default('📋'),
+  icon: text('icon').notNull().default('mdi:clipboard-text'),
   frequency: text('frequency', { enum: ['daily', 'weekly'] }).notNull().default('daily'),
   kind: text('kind', { enum: ['standard', 'big_boss'] }).notNull().default('standard'),
   description: text('description'),
