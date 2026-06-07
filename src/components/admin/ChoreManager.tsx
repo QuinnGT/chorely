@@ -722,10 +722,12 @@ export function ChoreManager() {
               <div
                 key={chore.id}
                 className="glass-card animate-card-entrance relative flex items-start gap-4 p-4"
+                data-testid={`chore-card-${chore.id}`}
                 style={{
                   opacity: chore.isActive ? 1 : 0.5,
                   animationDelay: `${index * 60}ms`,
                   animationFillMode: 'backwards',
+                  zIndex: openMenuId === chore.id ? 10 : 0,
                 }}
               >
                 {/* Icon */}
