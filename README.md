@@ -1,216 +1,272 @@
 # Chorely
 
-A family chore and allowance management app that makes household responsibilities fun for kids. Built as a mobile-first PWA for tablets and phones.
+Chorely is a mobile-first family chore, allowance, savings, and reward-store app built as a Next.js PWA. Kids get a playful dashboard for finishing chores and tracking money. Parents get a PIN-protected admin area for managing kids, chores, allowance rules, store inventory, orders, voice settings, and themes.
 
-Kids pick their profile, check off daily chores, earn allowance, save toward goals, and spend coins in a reward store. Parents manage everything from a PIN-protected admin panel. An optional AI assistant helps kids stay on track with voice and chat.
+<p>
+  <a href="https://nextjs.org"><img alt="Next.js 16" src="https://img.shields.io/badge/Next.js-16-black"></a>
+  <a href="https://react.dev"><img alt="React 19" src="https://img.shields.io/badge/React-19-149eca"></a>
+  <a href="https://www.typescriptlang.org"><img alt="TypeScript strict" src="https://img.shields.io/badge/TypeScript-strict-3178c6"></a>
+  <a href="https://orm.drizzle.team"><img alt="Drizzle ORM" src="https://img.shields.io/badge/Drizzle-PostgreSQL-c5f74f"></a>
+  <a href="LICENSE"><img alt="MIT license" src="https://img.shields.io/badge/license-MIT-green"></a>
+</p>
+
+<a href="public/app-screenshots/frontend/kids-dashboard.png">
+  <img src="public/app-screenshots/frontend/kids-dashboard.png" alt="Chorely kid dashboard showing chores, wallet, weekly goal, streaks, and achievements" width="100%">
+</a>
+
+## Highlights
+
+- Kid profiles with custom color themes, uploaded avatars, and optional AI-generated avatars.
+- Daily and weekly chore grids with streaks, progress rings, achievements, and a full-screen celebration when daily chores are complete.
+- "Big Boss" weekly chores with descriptions and bonus reward amounts.
+- Allowance tracking with base earnings, streak bonuses, paid history, and per-kid allowance rules.
+- Save, Spend, Give money jars with configurable allocation percentages.
+- Savings goals with contributions, withdrawals, and store-item goal creation when kids are short on funds.
+- Reward store with categories, stock, order approvals, custom currency settings, uploaded images, and optional AI-generated item images.
+- Optional AI chat and voice assistant using OpenRouter, Ollama, Web Speech API, ElevenLabs, and a voice-provider abstraction.
+- Docker-first deployment with automatic schema push and admin PIN sync at startup.
 
 ## Screenshots
 
-<details open>
-<summary>📱 Kid views — dashboard, goals, store, weekly summary</summary>
-<br>
+Click any screenshot to open the full-resolution image.
 
-| Dashboard | Goals | Reward Store | Weekly Summary |
-|:---------:|:-----:|:------------:|:--------------:|
-| <img src="public/app-screenshots/frontend/kids-dashboard.png" width="220" alt="Kids dashboard"> | <img src="public/app-screenshots/frontend/kids-goals.png" width="220" alt="Savings goals"> | <img src="public/app-screenshots/frontend/kids-store.png" width="220" alt="Reward store"> | <img src="public/app-screenshots/frontend/kids-weekly-summary.png" width="220" alt="Weekly summary"> |
+### Kid App
 
-</details>
+<table>
+  <tr>
+    <td width="50%">
+      <a href="public/app-screenshots/frontend/kids-dashboard.png">
+        <img src="public/app-screenshots/frontend/kids-dashboard.png" alt="Kids dashboard" width="100%">
+      </a>
+      <strong>Dashboard</strong>
+    </td>
+    <td width="50%">
+      <a href="public/app-screenshots/frontend/kids-goals.png">
+        <img src="public/app-screenshots/frontend/kids-goals.png" alt="Kids savings goals and jars" width="100%">
+      </a>
+      <strong>Savings Goals</strong>
+    </td>
+  </tr>
+  <tr>
+    <td width="50%">
+      <a href="public/app-screenshots/frontend/kids-store.png">
+        <img src="public/app-screenshots/frontend/kids-store.png" alt="Kids reward store" width="100%">
+      </a>
+      <strong>Reward Store</strong>
+    </td>
+    <td width="50%">
+      <a href="public/app-screenshots/frontend/kids-weekly-summary.png">
+        <img src="public/app-screenshots/frontend/kids-weekly-summary.png" alt="Kids weekly summary" width="100%">
+      </a>
+      <strong>Weekly Summary</strong>
+    </td>
+  </tr>
+</table>
 
-<details open>
-<summary>🔧 Admin panel — kids, chores, allowance, themes, voice</summary>
-<br>
+### Parent Admin
 
-| Kid Management | Chore Manager | Allowance | Themes | Voice Settings |
-|:--------------:|:-------------:|:---------:|:------:|:--------------:|
-| <img src="public/app-screenshots/admin/family-admin-kid-management.png" width="220" alt="Kid management"> | <img src="public/app-screenshots/admin/family-admin-chore-manager.png" width="220" alt="Chore manager"> | <img src="public/app-screenshots/admin/family-admin-allowance-manager.png" width="220" alt="Allowance manager"> | <img src="public/app-screenshots/admin/family-admin-themes.png" width="220" alt="Theme settings"> | <img src="public/app-screenshots/admin/family-admin-voice.png" width="220" alt="Voice settings"> |
-
-</details>
-
-## Features
-
-### For Kids
-
-- **Chore Dashboard** -- Weekly chore grid with daily checkboxes, progress ring, and streak counter. Chores are split into Main (daily) and Bonus (weekly) tabs.
-- **Celebrations** -- Full-screen confetti overlay when all daily chores are done. Plays once per day with trophy animation, bonus tokens, and a streak callout.
-- **Earnings Tracker** -- Weekly summaries, base vs. bonus breakdown, earning history timeline, and achievement badges (First Chore, Full Day, Full Week, 7/14/30-Day Streaks).
-- **Savings Goals** -- Set goals for things you want. Progress bars track how close you are.
-- **Money Jars** -- Spending categories (Save, Spend, Give) with configurable percentage splits and visual fill-level jars.
-- **Reward Store** -- Browse items by category (Toys, Games, Experiences, Books). Redeem with earned coins or add items to savings goals if you're short.
-- **AI Chat** -- Slide-out chat panel with a friendly assistant that knows your chores, allowance, and goals. Can mark chores done and create savings goals by conversation.
-- **Voice Assistant** -- Tap-to-speak mic button on the dashboard. Supports Web Speech API (free), ElevenLabs (premium TTS), and AWS Bedrock (planned).
-
-### For Parents
-
-- **PIN-Protected Admin** -- 4-digit keypad entry with on-screen buttons. Session persists until the browser tab closes.
-- **Kid Management** -- Add kids with names, avatar photos, and theme colors. Each kid gets their own color scheme across the app.
-- **Chore Management** -- Create chores with emoji icons, set frequency (daily/weekly), and assign to one or more kids.
-- **Allowance Rules** -- Per-kid amounts for full completion, partial completion, and streak bonuses. Configure minimum streak days.
-- **Store Admin** -- Manage inventory (items, prices, stock, categories), review orders (pending/approved/shipped/delivered), and configure store settings.
-- **Voice Settings** -- Per-kid voice config: wake phrase, provider selection, speech output, sound effects. Test voice button.
-- **Themes** -- Light/dark mode, 4 preset color themes, and a custom color picker with live preview.
+<table>
+  <tr>
+    <td width="50%">
+      <a href="public/app-screenshots/admin/family-admin-kid-management.png">
+        <img src="public/app-screenshots/admin/family-admin-kid-management.png" alt="Family admin kid management" width="100%">
+      </a>
+      <strong>Kid Management</strong>
+    </td>
+    <td width="50%">
+      <a href="public/app-screenshots/admin/family-admin-chore-manager.png">
+        <img src="public/app-screenshots/admin/family-admin-chore-manager.png" alt="Family admin chore manager" width="100%">
+      </a>
+      <strong>Chore Manager</strong>
+    </td>
+  </tr>
+  <tr>
+    <td width="50%">
+      <a href="public/app-screenshots/admin/family-admin-allowance-manager.png">
+        <img src="public/app-screenshots/admin/family-admin-allowance-manager.png" alt="Family admin allowance manager" width="100%">
+      </a>
+      <strong>Allowance Rules</strong>
+    </td>
+    <td width="50%">
+      <a href="public/app-screenshots/admin/family-admin-themes.png">
+        <img src="public/app-screenshots/admin/family-admin-themes.png" alt="Family admin themes" width="100%">
+      </a>
+      <strong>Themes</strong>
+    </td>
+  </tr>
+  <tr>
+    <td width="50%">
+      <a href="public/app-screenshots/admin/family-admin-voice.png">
+        <img src="public/app-screenshots/admin/family-admin-voice.png" alt="Family admin voice settings" width="100%">
+      </a>
+      <strong>Voice Settings</strong>
+    </td>
+    <td width="50%">
+      <a href="public/app-screenshots/admin/family-admin-store.png">
+        <img src="public/app-screenshots/admin/family-admin-store.png" alt="Family admin store settings" width="100%">
+      </a>
+      <strong>Store Admin</strong>
+    </td>
+  </tr>
+</table>
 
 ## Tech Stack
 
 | Layer | Technology |
-|-------|-----------|
-| Framework | Next.js 16 (App Router), React 19 |
-| Language | TypeScript (strict) |
+| --- | --- |
+| Framework | Next.js 16 App Router, React 19 |
+| Language | TypeScript strict mode |
 | Database | PostgreSQL 17, Drizzle ORM |
 | Styling | Tailwind CSS v4, CSS custom properties |
-| AI | Vercel AI SDK, OpenRouter, Ollama |
-| Voice | Web Speech API, ElevenLabs, AWS Bedrock (planned) |
+| AI | Vercel AI SDK, OpenRouter, Ollama, Mem0 optional memory |
+| Voice | Web Speech API, ElevenLabs, AWS Bedrock-ready settings |
 | Validation | Zod |
 | Testing | Vitest, Testing Library, fast-check |
-| Package Manager | pnpm |
+| Package manager | pnpm 10 |
 
-## Getting Started
+## Quick Start
 
 ### Prerequisites
 
 - [Node.js](https://nodejs.org/) 22+
 - [pnpm](https://pnpm.io/)
-- [Docker](https://www.docker.com/) (for PostgreSQL, or bring your own)
+- [Docker](https://www.docker.com/) for local PostgreSQL, or your own PostgreSQL database
 
-### 1. Clone and install
+### Local Development
 
 ```sh
-git clone https://github.com/your-username/chorely.git
+git clone https://github.com/QuinnGT/chorely.git
 cd chorely
 pnpm install
-```
-
-### 2. Start the database
-
-```sh
-docker compose up db
-```
-
-This starts PostgreSQL 17 on port 5432.
-
-### 3. Configure environment
-
-```sh
-cp .env.example .env
-```
-
-Edit `.env` with your database connection string. The defaults work with the Docker Compose setup:
-
-```
-DATABASE_URL=postgresql://chorely:chorely@localhost:5432/chorely
-DEFAULT_ADMIN_PIN=1234
-```
-
-All other variables are optional. See [Environment Variables](#environment-variables) below.
-
-### 4. Push the schema and seed
-
-```sh
+cp .env.example .env.local
+docker compose up -d db
 pnpm db:push
 pnpm db:seed
-```
-
-### 5. Run the dev server
-
-```sh
 pnpm dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000). Pick a kid profile and start checking off chores.
+Open [http://localhost:3000](http://localhost:3000). The seed command creates demo kids, chores, allowance data, savings goals, store items, and the default admin PIN from `DEFAULT_ADMIN_PIN`.
+
+Only run `pnpm db:seed` on a new or disposable database. It clears existing Chorely data before creating demo records.
 
 ## Deployment
 
-### Docker (recommended)
+### Option 1: Docker Compose
 
-The full stack runs with Docker Compose:
+This is the easiest self-hosted path because the app container pushes the Drizzle schema and syncs the admin PIN every time it starts.
 
 ```sh
-docker compose --profile full up
+cp .env.example .env
+docker compose --profile full up --build
 ```
 
-This starts both PostgreSQL and the Next.js app on port 3000. The app uses a multi-stage Docker build with standalone Next.js output and runs as a non-root user.
+Then open [http://localhost:3000](http://localhost:3000). PostgreSQL runs as the `db` service, and app data is stored in the `pgdata` Docker volume.
 
-### Manual
+For a real deployment, set at least these values in `.env` before starting:
+
+```env
+DEFAULT_ADMIN_PIN=change-this-pin
+OPENROUTER_API_KEY=
+ELEVENLABS_API_KEY=
+```
+
+`DATABASE_URL` is set automatically inside Docker Compose so the app can reach the `db` service. Optional AI and voice variables can be left blank.
+
+### Option 2: Bring Your Own PostgreSQL
+
+Use this flow for platforms such as Vercel, Render, Railway, Fly.io, or any Node host.
+
+1. Provision a PostgreSQL database.
+2. Set `DATABASE_URL` and `DEFAULT_ADMIN_PIN` in the host's environment settings.
+3. Set optional AI and voice keys if you want those features enabled.
+4. Build with `pnpm build`.
+5. Before the first app start, run:
+
+```sh
+pnpm db:push
+pnpm db:admin-pin
+```
+
+For Vercel-style workflows, pull or create a local `.env.local` containing the production `DATABASE_URL`, then run the two commands above from your machine or CI. Run `pnpm db:seed` only if you intentionally want demo data in that database.
+
+### Production Start
 
 ```sh
 pnpm build
 pnpm start
 ```
 
-You'll need to provide your own PostgreSQL instance via `DATABASE_URL`.
+The Next.js config uses standalone output, so the included Dockerfile can run a smaller production image.
 
 ## Environment Variables
 
 | Variable | Required | Purpose |
-|----------|----------|---------|
-| `DATABASE_URL` | Yes | PostgreSQL connection string |
-| `DEFAULT_ADMIN_PIN` | Yes | PIN for the parent admin panel (default: `1234`) |
-| `OPENROUTER_API_KEY` | No | AI chat via OpenRouter cloud models |
-| `OLLAMA_BASE_URL` | No | Local AI via Ollama (default: `http://localhost:11434`) |
-| `MEM0_API_KEY` | No | Conversation memory for the AI assistant |
-| `ELEVENLABS_API_KEY` | No | Premium text-to-speech voices |
-| `AWS_ACCESS_KEY_ID` | No | AWS Bedrock voice provider |
-| `AWS_SECRET_ACCESS_KEY` | No | AWS Bedrock voice provider |
-| `AWS_REGION` | No | AWS Bedrock voice provider |
+| --- | --- | --- |
+| `DATABASE_URL` | Yes | PostgreSQL connection string. Local default: `postgresql://chorely:chorely@localhost:5432/chorely` |
+| `DEFAULT_ADMIN_PIN` | Yes | Parent admin PIN. Seeded by `pnpm db:seed`, `pnpm db:admin-pin`, or the Docker entrypoint. |
+| `OPENROUTER_API_KEY` | No | Enables OpenRouter chat and AI image generation. |
+| `OLLAMA_BASE_URL` | No | Local Ollama endpoint. Defaults to `http://localhost:11434`; Docker Compose defaults to `http://host.docker.internal:11434`. |
+| `AVATAR_MODEL` | No | Quality image model for generated avatars and store images. |
+| `AVATAR_MODEL_FAST` | No | Faster image model for generated avatars and store images. |
+| `ELEVENLABS_API_KEY` | No | Premium text-to-speech voices and voice list lookup. |
+| `AWS_ACCESS_KEY_ID` | No | AWS Bedrock voice-provider configuration. |
+| `AWS_SECRET_ACCESS_KEY` | No | AWS Bedrock voice-provider configuration. |
+| `AWS_REGION` | No | AWS Bedrock voice-provider configuration. |
 
-The app works with just `DATABASE_URL` and `DEFAULT_ADMIN_PIN`. AI, voice, and memory features degrade gracefully when their keys aren't set.
+The app runs with only `DATABASE_URL` and `DEFAULT_ADMIN_PIN`. AI, generated images, memory, and premium voice features degrade gracefully when their keys are missing.
 
 ## Scripts
 
-```sh
-pnpm dev          # Start dev server
-pnpm build        # Production build
-pnpm start        # Start production server
-pnpm lint         # Run ESLint
-pnpm test         # Run all tests
-pnpm db:push      # Push Drizzle schema to database
-pnpm db:seed      # Seed sample data
-```
+| Command | Description |
+| --- | --- |
+| `pnpm dev` | Start the Next.js dev server. |
+| `pnpm build` | Build the production app. |
+| `pnpm start` | Start the production server. |
+| `pnpm lint` | Run ESLint. |
+| `pnpm test` | Run Vitest once. |
+| `pnpm db:push` | Push the Drizzle schema to the configured database. |
+| `pnpm db:seed` | Reset and seed demo data. |
+| `pnpm db:admin-pin` | Upsert `DEFAULT_ADMIN_PIN` into `app_settings`. |
 
 ## Project Structure
 
-```
+```text
 src/
-  app/                  # Pages and API routes (App Router)
-    (kid)/              # Kid-facing pages (dashboard, earnings, goals, store)
-    admin/              # Parent admin pages
-    api/                # API routes by domain
-  components/           # React components
-    admin/              # Admin-specific components
-    shared/             # Layout and shared components
-    store/              # Store feature components
-  contexts/             # React Context providers
-  db/                   # Drizzle schema, connection, seed
-  hooks/                # Custom React hooks
-  lib/                  # Business logic and utilities
-    voice-providers/    # Voice provider abstraction layer
+  app/                  Pages and API routes
+    (kid)/              Kid-facing dashboard, earnings, goals, and store
+    admin/              PIN-protected parent admin area
+    api/                API routes by domain
+  components/           Shared, kid, admin, and store UI components
+  contexts/             React context providers
+  db/                   Drizzle schema, database client, and seed data
+  hooks/                Client data hooks
+  lib/                  Business logic, validation, AI, image, and voice helpers
+public/
+  app-screenshots/      README screenshots
+  icons/                PWA icons
+scripts/
+  seed-admin-pin.mjs    Admin PIN sync helper
 ```
 
-## Vision
+## Troubleshooting
 
-Chorely started as a chore tracker but the goal is a family home base -- one app for the day-to-day stuff families need to coordinate.
-
-**Current focus:**
-- Chore management with gamification (streaks, badges, celebrations)
-- Allowance tracking with Save/Spend/Give money jars
-- Reward store where kids spend what they earn
-- AI assistant that understands each kid's context
-
-**On the roadmap:**
-- Family calendar with shared events and reminders
-- Meal planning and grocery lists
-- Recurring schedules and routines
-- Multi-family / household support
-- Native mobile apps (iOS, Android)
+| Problem | Fix |
+| --- | --- |
+| `PIN not configured` in the admin panel | Set `DEFAULT_ADMIN_PIN`, then run `pnpm db:admin-pin`. Docker Compose does this automatically when the variable is present. |
+| `DATABASE_URL` connection errors | Confirm PostgreSQL is running and that `.env.local` points at the right database. For local Docker DBs, use `docker compose up -d db`. |
+| AI chat or image generation is unavailable | Add `OPENROUTER_API_KEY`. Ollama can be used for chat when `OLLAMA_BASE_URL` is reachable. |
+| ElevenLabs voices do not load | Add `ELEVENLABS_API_KEY` and restart the app. |
+| Docker app cannot reach Ollama | Use `OLLAMA_BASE_URL=http://host.docker.internal:11434` or a network-reachable Ollama host. |
 
 ## Contributing
 
 Chorely is open source under the [MIT License](LICENSE). Contributions are welcome.
 
-1. Fork the repo
-2. Create a branch (`git checkout -b feature/my-feature`)
-3. Make your changes
-4. Run `pnpm lint` and `pnpm test`
-5. Open a pull request
+1. Fork the repo.
+2. Create a branch: `git checkout -b feature/my-feature`.
+3. Make your changes.
+4. Run `pnpm lint` and `pnpm test`.
+5. Open a pull request.
 
 ## License
 
