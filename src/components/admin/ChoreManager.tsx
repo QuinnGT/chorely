@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { IconPicker } from './IconPicker';
 import { suggestIcon, DEFAULT_CHORE_ICON } from '@/lib/icon-catalog';
 import { ChoreIcon } from '@/components/ChoreIcon';
+import { shouldOpenMenuUp } from '@/lib/menu-position';
 import type { ChoreFrequency, ChoreKind } from '@/lib/chore-types';
 
 interface KidRecord {
@@ -158,10 +159,7 @@ export function ChoreManager() {
       setOpenMenuId(null);
       return;
     }
-    const rect = btn.getBoundingClientRect();
-    const spaceBelow = window.innerHeight - rect.bottom;
-    const MENU_HEIGHT = 200; // approx height of the 3-item menu
-    setOpenMenuDir(spaceBelow < MENU_HEIGHT && rect.top > spaceBelow ? 'up' : 'down');
+    setOpenMenuDir(shouldOpenMenuUp(btn) ? 'up' : 'down');
     setConfirmDeleteId(null);
     setOpenMenuId(choreId);
   }, [openMenuId]);

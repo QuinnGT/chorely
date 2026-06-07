@@ -2,6 +2,7 @@
 
 import { useState, useCallback, useEffect } from 'react';
 import { StoreItemForm } from './StoreItemForm';
+import { shouldOpenMenuUp } from '@/lib/menu-position';
 
 export interface StoreItem {
   id: string;
@@ -53,6 +54,8 @@ export function InventoryTab() {
   const [showForm, setShowForm] = useState(false);
   const [editingItem, setEditingItem] = useState<StoreItem | null>(null);
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
+  // Which way the row's "more" menu opens, so it stays on-screen near the page bottom.
+  const [openMenuDir, setOpenMenuDir] = useState<'down' | 'up'>('down');
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
 
   const fetchItems = useCallback(async () => {
@@ -83,6 +86,17 @@ export function InventoryTab() {
     setShowForm(true);
     setOpenMenuId(null);
   }, []);
+
+  // Toggle the row menu, opening it upward when there isn't room below the button.
+  const handleToggleMenu = useCallback((itemId: string, btn: HTMLElement) => {
+    if (openMenuId === itemId) {
+      setOpenMenuId(null);
+      return;
+    }
+    setOpenMenuDir(shouldOpenMenuUp(btn) ? 'up' : 'down');
+    setConfirmDeleteId(null);
+    setOpenMenuId(itemId);
+  }, [openMenuId]);
 
   const handleFormClose = useCallback(() => {
     setShowForm(false);
@@ -289,7 +303,7 @@ export function InventoryTab() {
                     <div className="relative inline-block">
                       <button
                         type="button"
-                        onClick={() => setOpenMenuId(openMenuId === item.id ? null : item.id)}
+                        onClick={(e) => handleToggleMenu(item.id, e.currentTarget)}
                         className="flex h-10 w-10 items-center justify-center rounded-full transition-colors active:bg-gray-100"
                         style={{ color: 'var(--on-surface-variant)' }}
                         aria-label="More options"
@@ -301,7 +315,9 @@ export function InventoryTab() {
 
                       {openMenuId === item.id && (
                         <div
-                          className="animate-bounce-in absolute right-0 top-12 z-10 flex w-40 flex-col rounded-2xl py-2"
+                          className={`animate-bounce-in absolute right-0 z-20 flex w-40 flex-col rounded-2xl py-2 ${
+                            openMenuDir === 'up' ? 'bottom-12' : 'top-12'
+                          }`}
                           style={{
                             background: 'var(--surface-container-lowest)',
                             border: '1px solid var(--surface-container-high)',
