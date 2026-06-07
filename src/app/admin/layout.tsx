@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { PinEntry } from '@/components/PinEntry';
+import { readAdminSessionExpiration, serializeAdminSession } from '@/lib/admin-session';
 
 const SESSION_KEY = 'admin-pin-authenticated';
 
@@ -32,14 +33,16 @@ function isTabActive(pathname: string, tab: AdminTab): boolean {
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [sessionExpiresAt, setSessionExpiresAt] = useState<number | null>(null);
   const [isHydrated, setIsHydrated] = useState(false);
 
   useEffect(() => {
     try {
-      const stored = sessionStorage.getItem(SESSION_KEY);
-      if (stored === 'true') {
-        setIsAuthenticated(true);
+      const expiresAt = readAdminSessionExpiration(sessionStorage.getItem(SESSION_KEY));
+      if (expiresAt !== null) {
+        setSessionExpiresAt(expiresAt);
+      } else {
+        sessionStorage.removeItem(SESSION_KEY);
       }
     } catch {
       // sessionStorage unavailable
@@ -47,10 +50,46 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     setIsHydrated(true);
   }, []);
 
-  const handleAuthSuccess = useCallback(() => {
-    setIsAuthenticated(true);
+  useEffect(() => {
+    if (sessionExpiresAt === null) {
+      return;
+    }
+    const expiresAt = sessionExpiresAt;
+
+    function clearSession() {
+      setSessionExpiresAt(null);
+      try {
+        sessionStorage.removeItem(SESSION_KEY);
+      } catch {
+        // sessionStorage unavailable
+      }
+    }
+
+    function expireSessionIfNeeded() {
+      if (Date.now() >= expiresAt) {
+        clearSession();
+      }
+    }
+
+    const timeoutId = window.setTimeout(
+      clearSession,
+      Math.max(0, expiresAt - Date.now()),
+    );
+    window.addEventListener('focus', expireSessionIfNeeded);
+    document.addEventListener('visibilitychange', expireSessionIfNeeded);
+
+    return () => {
+      window.clearTimeout(timeoutId);
+      window.removeEventListener('focus', expireSessionIfNeeded);
+      document.removeEventListener('visibilitychange', expireSessionIfNeeded);
+    };
+  }, [sessionExpiresAt]);
+
+  const handleAuthSuccess = useCallback((sessionTimeoutMs: number) => {
+    const expiresAt = Date.now() + sessionTimeoutMs;
+    setSessionExpiresAt(expiresAt);
     try {
-      sessionStorage.setItem(SESSION_KEY, 'true');
+      sessionStorage.setItem(SESSION_KEY, serializeAdminSession(expiresAt));
     } catch {
       // sessionStorage unavailable
     }
@@ -66,7 +105,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     );
   }
 
-  if (!isAuthenticated) {
+  if (sessionExpiresAt === null) {
     return (
       <div
         className="relative flex min-h-screen items-center justify-center overflow-hidden"

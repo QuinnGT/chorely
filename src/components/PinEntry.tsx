@@ -4,7 +4,7 @@ import { useState, useCallback, useEffect } from 'react';
 import { useAdminAuth } from '@/hooks/useAdminAuth';
 
 interface PinEntryProps {
-  onSuccess: () => void;
+  onSuccess: (sessionTimeoutMs: number) => void;
   onCancel: () => void;
 }
 
@@ -15,12 +15,12 @@ export function PinEntry({ onSuccess, onCancel }: PinEntryProps) {
   const [digits, setDigits] = useState<string[]>([]);
   const [shaking, setShaking] = useState(false);
   const [networkError, setNetworkError] = useState<string | null>(null);
-  const { status, verify, error } = useAdminAuth();
+  const { status, verify, error, sessionTimeoutMs } = useAdminAuth();
 
   // Handle auth status changes
   useEffect(() => {
-    if (status === 'authenticated') {
-      onSuccess();
+    if (status === 'authenticated' && sessionTimeoutMs !== null) {
+      onSuccess(sessionTimeoutMs);
     }
 
     if (status === 'error' && error) {
@@ -40,7 +40,7 @@ export function PinEntry({ onSuccess, onCancel }: PinEntryProps) {
         }, 400);
       }
     }
-  }, [status, error, onSuccess]);
+  }, [status, error, sessionTimeoutMs, onSuccess]);
 
   const handleKeyPress = useCallback(
     (key: string) => {

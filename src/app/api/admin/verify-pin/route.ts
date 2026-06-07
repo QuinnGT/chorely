@@ -3,6 +3,7 @@ import { eq } from 'drizzle-orm';
 import { timingSafeEqual } from 'crypto';
 import { db } from '@/db';
 import { appSettings } from '@/db/schema';
+import { getAdminSessionTimeoutMs } from '@/lib/admin-session';
 import { verifyPinSchema } from '@/lib/validators';
 
 // --- In-memory rate limiter (per-IP, resets on restart) ---
@@ -75,7 +76,10 @@ export async function POST(request: Request): Promise<NextResponse> {
       return NextResponse.json({ error: 'Invalid PIN' }, { status: 401 });
     }
 
-    return NextResponse.json({ success: true });
+    return NextResponse.json({
+      success: true,
+      sessionTimeoutMs: getAdminSessionTimeoutMs(process.env.ADMIN_PIN_SESSION_TIMEOUT_MINUTES),
+    });
   } catch (error: unknown) {
     if (error instanceof Error && error.name === 'ZodError') {
       return NextResponse.json({ error: 'Validation failed', details: error }, { status: 400 });

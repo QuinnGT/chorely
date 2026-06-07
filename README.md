@@ -204,6 +204,7 @@ The Next.js config uses standalone output, so the included Dockerfile can run a 
 | --- | --- | --- |
 | `DATABASE_URL` | Yes | PostgreSQL connection string. Local default: `postgresql://chorely:chorely@localhost:5432/chorely` |
 | `DEFAULT_ADMIN_PIN` | Yes | Parent admin PIN. Seeded by `pnpm db:seed`, `pnpm db:admin-pin`, or the Docker entrypoint. |
+| `ADMIN_PIN_SESSION_TIMEOUT_MINUTES` | No | Minutes before parent admin access requires the PIN again. Defaults to `5`. |
 | `OPENROUTER_API_KEY` | No | Enables OpenRouter chat and AI image generation. |
 | `OLLAMA_BASE_URL` | No | Local Ollama endpoint. Defaults to `http://localhost:11434`; Docker Compose defaults to `http://host.docker.internal:11434`. |
 | `AVATAR_MODEL` | No | Quality image model for generated avatars and store images. |

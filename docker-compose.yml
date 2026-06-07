@@ -31,6 +31,7 @@ services:
     environment:
       DATABASE_URL: postgresql://chorely:chorely@db:5432/chorely
       DEFAULT_ADMIN_PIN: ${DEFAULT_ADMIN_PIN:-1234}
+      ADMIN_PIN_SESSION_TIMEOUT_MINUTES: ${ADMIN_PIN_SESSION_TIMEOUT_MINUTES:-5}
       OPENROUTER_API_KEY: ${OPENROUTER_API_KEY:-}
       OLLAMA_BASE_URL: ${OLLAMA_BASE_URL:-http://host.docker.internal:11434}
       AVATAR_MODEL: ${AVATAR_MODEL:-}
