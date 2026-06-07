@@ -18,7 +18,7 @@ export type UpdateKidInput = z.infer<typeof updateKidSchema>;
 
 export const createChoreSchema = z.object({
   name: z.string().min(1, 'Name is required').max(100),
-  icon: z.string().min(1).max(10).default('📋'),
+  icon: z.string().min(1).max(64).default('mdi:clipboard-text'),
   frequency: z.enum(CHORE_FREQUENCIES).default('daily'),
   kind: z.enum(CHORE_KINDS).default('standard'),
   description: z.string().max(240).nullable().optional(),
@@ -31,7 +31,7 @@ export const createChoreSchema = z.object({
 
 export const updateChoreSchema = z.object({
   name: z.string().min(1).max(100).optional(),
-  icon: z.string().min(1).max(10).optional(),
+  icon: z.string().min(1).max(64).optional(),
   frequency: z.enum(CHORE_FREQUENCIES).optional(),
   kind: z.enum(CHORE_KINDS).optional(),
   description: z.string().max(240).nullable().optional(),

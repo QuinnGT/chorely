@@ -4,6 +4,7 @@ import { useMemo, useState, useCallback, useEffect } from 'react';
 import { useChoreGrid, type ChoreRow } from '@/hooks/useChoreGrid';
 import { useToggleCompletion } from '@/hooks/useToggleCompletion';
 import { ChoreCheckbox } from '@/components/ChoreCheckbox';
+import { ChoreIcon } from '@/components/ChoreIcon';
 
 interface ChoreGridProps {
   kidId: string;
@@ -45,7 +46,7 @@ function ChoreRowDisplay({ row, onToggle, index }: ChoreRowDisplayProps) {
               : 'var(--on-primary-container)'
           }}
         >
-          {row.chore.icon}
+          <ChoreIcon value={row.chore.icon} />
         </div>
         <div className="flex-1 min-w-0">
           <p className="font-headline font-bold text-lg text-on-surface">{row.chore.name}</p>
@@ -90,7 +91,7 @@ function WeeklyBigBossQuest({ row, onToggle, index }: ChoreRowDisplayProps) {
     >
       <div className="z-10 flex min-w-0 items-center gap-4">
         <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-white/20 text-3xl shadow-sm">
-          {row.chore.icon}
+          <ChoreIcon value={row.chore.icon} />
         </div>
         <div className="min-w-0">
           <p className="mb-1 text-xs font-bold uppercase opacity-80">

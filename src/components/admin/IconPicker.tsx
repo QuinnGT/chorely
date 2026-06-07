@@ -1,17 +1,20 @@
 'use client';
 
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { EMOJI_CATALOG, groupByCategory, searchEmojis, type EmojiEntry } from '@/lib/emoji-suggester';
+import { ICON_CATALOG, groupByCategory, searchIcons, type IconEntry } from '@/lib/icon-catalog';
+import { ChoreIcon } from '@/components/ChoreIcon';
 
-interface EmojiPickerProps {
+interface IconPickerProps {
   open: boolean;
+  /** Currently selected icon ID. */
   selected: string;
+  /** Recently used icon IDs. */
   recent?: readonly string[];
-  onSelect: (emoji: string) => void;
+  onSelect: (iconId: string) => void;
   onClose: () => void;
 }
 
-export function EmojiPicker({ open, selected, recent = [], onSelect, onClose }: EmojiPickerProps) {
+export function IconPicker({ open, selected, recent = [], onSelect, onClose }: IconPickerProps) {
   const [query, setQuery] = useState('');
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -35,11 +38,18 @@ export function EmojiPicker({ open, selected, recent = [], onSelect, onClose }: 
   }, [open, onClose]);
 
   const isSearching = query.trim() !== '';
-  const searchResults = useMemo<readonly EmojiEntry[]>(
-    () => (isSearching ? searchEmojis(query) : EMOJI_CATALOG),
+  const searchResults = useMemo<readonly IconEntry[]>(
+    () => (isSearching ? searchIcons(query) : ICON_CATALOG),
     [isSearching, query]
   );
-  const grouped = useMemo(() => groupByCategory(EMOJI_CATALOG), []);
+  const grouped = useMemo(() => groupByCategory(ICON_CATALOG), []);
+
+  // Map ID → display name for the "recently used" row (which only stores IDs).
+  const nameById = useMemo(() => {
+    const m = new Map<string, string>();
+    for (const e of ICON_CATALOG) m.set(e.iconId, e.name);
+    return m;
+  }, []);
 
   // Dedupe recent against itself, drop empties
   const recentDeduped = useMemo(() => {
@@ -62,7 +72,7 @@ export function EmojiPicker({ open, selected, recent = [], onSelect, onClose }: 
       style={{ background: 'rgba(0, 0, 0, 0.4)' }}
       onClick={onClose}
       role="dialog"
-      aria-label="Pick an emoji"
+      aria-label="Pick an icon"
     >
       <div
         className="animate-bounce-in flex max-h-[80vh] w-full max-w-md flex-col rounded-t-[2rem] sm:rounded-[2rem]"
@@ -75,7 +85,7 @@ export function EmojiPicker({ open, selected, recent = [], onSelect, onClose }: 
         {/* Header */}
         <div className="flex items-center gap-3 border-b p-4" style={{ borderColor: 'var(--surface-container-high)' }}>
           <h3 className="flex-1 font-headline text-lg font-bold" style={{ color: 'var(--on-surface)' }}>
-            Pick an emoji
+            Pick an icon
           </h3>
           <button
             type="button"
@@ -95,7 +105,7 @@ export function EmojiPicker({ open, selected, recent = [], onSelect, onClose }: 
             type="text"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder="Search (e.g. trash, dog, dishes)"
+            placeholder="Search (e.g. vacuum, garage, dishes)"
             className="w-full rounded-full px-4 py-3 text-base outline-none"
             style={{
               background: 'var(--surface-container-low)',
@@ -112,12 +122,12 @@ export function EmojiPicker({ open, selected, recent = [], onSelect, onClose }: 
             <div className="mb-4">
               <SectionLabel>Recently used</SectionLabel>
               <div className="flex flex-wrap gap-2">
-                {recentDeduped.map((emoji) => (
-                  <EmojiButton
-                    key={`recent-${emoji}`}
-                    emoji={emoji}
-                    name={emoji}
-                    selected={selected === emoji}
+                {recentDeduped.map((iconId) => (
+                  <IconButton
+                    key={`recent-${iconId}`}
+                    iconId={iconId}
+                    name={nameById.get(iconId) ?? iconId}
+                    selected={selected === iconId}
                     onSelect={onSelect}
                   />
                 ))}
@@ -133,11 +143,11 @@ export function EmojiPicker({ open, selected, recent = [], onSelect, onClose }: 
             ) : (
               <div className="grid grid-cols-6 gap-2 sm:grid-cols-8">
                 {searchResults.map((entry, i) => (
-                  <EmojiButton
-                    key={`${entry.emoji}-${i}`}
-                    emoji={entry.emoji}
+                  <IconButton
+                    key={`${entry.iconId}-${i}`}
+                    iconId={entry.iconId}
                     name={entry.name}
-                    selected={selected === entry.emoji}
+                    selected={selected === entry.iconId}
                     onSelect={onSelect}
                   />
                 ))}
@@ -149,11 +159,11 @@ export function EmojiPicker({ open, selected, recent = [], onSelect, onClose }: 
                 <SectionLabel>{group.label}</SectionLabel>
                 <div className="grid grid-cols-6 gap-2 sm:grid-cols-8">
                   {group.entries.map((entry, i) => (
-                    <EmojiButton
-                      key={`${group.category}-${entry.emoji}-${i}`}
-                      emoji={entry.emoji}
+                    <IconButton
+                      key={`${group.category}-${entry.iconId}-${i}`}
+                      iconId={entry.iconId}
                       name={entry.name}
-                      selected={selected === entry.emoji}
+                      selected={selected === entry.iconId}
                       onSelect={onSelect}
                     />
                   ))}
@@ -178,27 +188,28 @@ function SectionLabel({ children }: { children: React.ReactNode }) {
   );
 }
 
-interface EmojiButtonProps {
-  emoji: string;
+interface IconButtonProps {
+  iconId: string;
   name: string;
   selected: boolean;
-  onSelect: (emoji: string) => void;
+  onSelect: (iconId: string) => void;
 }
 
-function EmojiButton({ emoji, name, selected, onSelect }: EmojiButtonProps) {
+function IconButton({ iconId, name, selected, onSelect }: IconButtonProps) {
   return (
     <button
       type="button"
-      onClick={() => onSelect(emoji)}
+      onClick={() => onSelect(iconId)}
       className="flex h-11 w-11 items-center justify-center rounded-full text-xl transition-transform active:scale-90"
       style={{
         background: selected ? 'var(--secondary-container)' : 'var(--surface-container-low)',
+        color: selected ? 'var(--on-secondary-container)' : 'var(--on-surface)',
         border: selected ? '2px solid var(--secondary)' : '2px solid transparent',
       }}
       title={name}
       aria-label={name}
     >
-      {emoji}
+      <ChoreIcon value={iconId} />
     </button>
   );
 }
