@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useCallback } from 'react';
+import { useCallback, useRef, useState } from 'react';
 import { CoinAnimation } from './CoinAnimation';
 
 interface ChoreCheckboxProps {
@@ -22,6 +22,7 @@ export function ChoreCheckbox({
   dayLabel,
   isToday = false,
 }: ChoreCheckboxProps) {
+  const checkboxRef = useRef<HTMLDivElement>(null);
   const [showPop, setShowPop] = useState(false);
   const [showCoin, setShowCoin] = useState(false);
 
@@ -43,6 +44,7 @@ export function ChoreCheckbox({
 
   return (
     <div
+      ref={checkboxRef}
       role="checkbox"
       aria-checked={completed}
       aria-disabled={disabled}
@@ -107,7 +109,11 @@ export function ChoreCheckbox({
           {dayLabel}
         </span>
       ) : null}
-      <CoinAnimation active={showCoin} onComplete={handleCoinComplete} />
+      <CoinAnimation
+        active={showCoin}
+        onComplete={handleCoinComplete}
+        anchorRef={checkboxRef}
+      />
     </div>
   );
 }

@@ -128,4 +128,37 @@ describe('CoinAnimation', () => {
     const coin = screen.getByTestId('coin-animation');
     expect(coin.style.pointerEvents).toBe('none');
   });
+
+  it('portals an anchored animation above clipping containers', () => {
+    const anchor = document.createElement('div');
+    document.body.appendChild(anchor);
+    vi.spyOn(anchor, 'getBoundingClientRect').mockReturnValue({
+      top: 200,
+      right: 140,
+      bottom: 240,
+      left: 100,
+      width: 40,
+      height: 40,
+      x: 100,
+      y: 200,
+      toJSON: () => ({}),
+    });
+
+    render(
+      <CoinAnimation
+        active={true}
+        onComplete={vi.fn()}
+        anchorRef={{ current: anchor }}
+      />,
+    );
+
+    const layer = screen.getByTestId('coin-animation-layer');
+    expect(layer.parentElement).toBe(document.body);
+    expect(layer.style.position).toBe('fixed');
+    expect(layer.style.left).toBe('120px');
+    expect(layer.style.top).toBe('204px');
+    expect(layer.style.zIndex).toBe('100');
+
+    anchor.remove();
+  });
 });

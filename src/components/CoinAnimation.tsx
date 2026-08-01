@@ -1,20 +1,41 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, type RefObject } from 'react';
+import { createPortal } from 'react-dom';
 
 interface CoinAnimationProps {
   active: boolean;
   onComplete: () => void;
   amount?: number;
+  anchorRef?: RefObject<HTMLElement | null>;
+}
+
+interface CoinPosition {
+  left: number;
+  top: number;
 }
 
 const MAX_DURATION_MS = 800;
 
-export function CoinAnimation({ active, onComplete, amount = 0 }: CoinAnimationProps) {
+export function CoinAnimation({ active, onComplete, amount = 0, anchorRef }: CoinAnimationProps) {
   const onCompleteRef = useRef(onComplete);
   onCompleteRef.current = onComplete;
 
   const hasFiredRef = useRef(false);
+  const [position, setPosition] = useState<CoinPosition | null>(null);
+
+  useEffect(() => {
+    if (!active || !anchorRef?.current) {
+      setPosition(null);
+      return;
+    }
+
+    const rect = anchorRef.current.getBoundingClientRect();
+    setPosition({
+      left: rect.left + rect.width / 2,
+      top: rect.top + 4,
+    });
+  }, [active, anchorRef]);
 
   useEffect(() => {
     if (!active) {
@@ -45,16 +66,16 @@ export function CoinAnimation({ active, onComplete, amount = 0 }: CoinAnimationP
     }
   };
 
-  return (
+  const animation = (
     <div
       data-testid="coin-animation"
       className="animate-coin-rise"
       onAnimationEnd={handleAnimationEnd}
       style={{
-        position: 'absolute',
+        position: position ? 'relative' : 'absolute',
         top: 0,
-        left: '50%',
-        transform: 'translateX(-50%)',
+        left: position ? undefined : '50%',
+        transform: position ? undefined : 'translateX(-50%)',
         pointerEvents: 'none',
         display: 'flex',
         flexDirection: 'column',
@@ -88,4 +109,27 @@ export function CoinAnimation({ active, onComplete, amount = 0 }: CoinAnimationP
       )}
     </div>
   );
+
+  if (anchorRef && !position) return null;
+
+  if (position && typeof document !== 'undefined') {
+    return createPortal(
+      <div
+        data-testid="coin-animation-layer"
+        style={{
+          position: 'fixed',
+          top: position.top,
+          left: position.left,
+          zIndex: 100,
+          transform: 'translateX(-50%)',
+          pointerEvents: 'none',
+        }}
+      >
+        {animation}
+      </div>,
+      document.body,
+    );
+  }
+
+  return animation;
 }
