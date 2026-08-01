@@ -8,7 +8,6 @@ import {
 } from '@/lib/avatar-presets';
 import {
   IMAGE_GEN_TIMEOUT_MS,
-  ModelRefusalError,
   generateFromPromptAndPhoto,
   resolveOpenRouterModel,
   saveImageUpload,
@@ -89,22 +88,11 @@ export async function POST(request: Request): Promise<NextResponse> {
     });
   } catch (err: unknown) {
     const aborted = err instanceof Error && err.name === 'AbortError';
-    const refusal = err instanceof ModelRefusalError ? err : null;
     console.error('[avatar-photo-gen] generation failed', {
       ms: Date.now() - startedAt,
       aborted,
-      refusal: refusal ? refusal.reason.slice(0, 400) : undefined,
       error: err instanceof Error ? err.message : String(err),
     });
-    if (refusal) {
-      return NextResponse.json(
-        {
-          error:
-            'The image generator declined this combination. Try a different character or style.',
-        },
-        { status: 422 },
-      );
-    }
     return NextResponse.json(
       { error: aborted ? 'Generation timed out' : 'Image generation failed' },
       { status: aborted ? 504 : 502 },

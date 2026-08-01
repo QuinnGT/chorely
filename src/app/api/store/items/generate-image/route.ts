@@ -75,7 +75,6 @@ export async function POST(request: Request): Promise<NextResponse> {
         modelId,
         prompt,
         signal: controller.signal,
-        label: '[store-item-image]',
       });
     } catch (err: unknown) {
       const aborted = err instanceof Error && err.name === 'AbortError';

@@ -61,7 +61,6 @@ export async function POST(request: Request): Promise<NextResponse> {
         modelId,
         prompt,
         signal: controller.signal,
-        label: '[avatar-gen]',
       });
     } catch (err: unknown) {
       const aborted = err instanceof Error && err.name === 'AbortError';
