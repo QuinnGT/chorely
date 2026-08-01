@@ -1,9 +1,9 @@
 'use client';
 
-import { useState, useCallback } from 'react';
+import { useCallback, useState } from 'react';
 
 interface UseToggleCompletionResult {
-  toggle: (assignmentId: string, date: string, newState: boolean) => Promise<void>;
+  toggle: (assignmentId: string, date: string, newState: boolean) => Promise<boolean>;
   error: string | null;
   isPending: boolean;
 }
@@ -30,13 +30,13 @@ export function useToggleCompletion(refetch: () => void): UseToggleCompletionRes
           throw new Error('Failed to toggle completion');
         }
 
-        // Refetch to sync server state after successful toggle
-        refetch();
+        return true;
       } catch (err: unknown) {
         const message = err instanceof Error ? err.message : 'Failed to save. Try again.';
         setError(message);
         // Revert by refetching server state
         refetch();
+        return false;
       } finally {
         setIsPending(false);
       }

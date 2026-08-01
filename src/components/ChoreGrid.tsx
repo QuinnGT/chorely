@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState, useCallback, useEffect } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useChoreGrid, type ChoreRow } from '@/hooks/useChoreGrid';
 import { useToggleCompletion } from '@/hooks/useToggleCompletion';
 import { ChoreCheckbox } from '@/components/ChoreCheckbox';
@@ -73,6 +73,66 @@ function ChoreRowDisplay({ row, onToggle, index }: ChoreRowDisplayProps) {
   );
 }
 
+function WeeklyChoreRowDisplay({ row, onToggle, index }: ChoreRowDisplayProps) {
+  const cell = row.days[0];
+
+  if (!cell) return null;
+
+  return (
+    <div
+      className="animate-card-entrance py-4"
+      style={{ animationDelay: `${index * 80}ms` }}
+    >
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
+        <div className="flex min-w-0 flex-1 items-center gap-4">
+          <div
+            className="flex h-14 w-14 flex-shrink-0 items-center justify-center rounded-2xl text-2xl shadow-sm"
+            style={{
+              backgroundColor: 'var(--tertiary-container)',
+              color: 'var(--on-tertiary-container)',
+            }}
+          >
+            <ChoreIcon value={row.chore.icon} />
+          </div>
+          <div className="min-w-0">
+            <p className="font-headline text-lg font-bold text-on-surface">
+              {row.chore.name}
+            </p>
+            <p
+              className="text-xs font-bold uppercase tracking-tight"
+              style={{ color: 'var(--on-surface-variant)' }}
+            >
+              Once this week
+            </p>
+          </div>
+        </div>
+        <button
+          type="button"
+          onClick={() => onToggle(row.assignmentId, cell.date, !cell.completed)}
+          disabled={cell.isFuture}
+          aria-pressed={cell.completed}
+          aria-label={`${cell.completed ? 'Mark incomplete' : 'Mark done'}: ${row.chore.name}`}
+          className="flex min-h-[60px] w-full items-center justify-center gap-2 rounded-full px-5 font-headline text-sm font-bold transition-all active:scale-[0.97] disabled:cursor-not-allowed sm:w-auto"
+          style={{
+            backgroundColor: cell.completed ? 'var(--primary)' : 'var(--surface-container)',
+            color: cell.completed ? 'var(--on-primary)' : 'var(--on-surface)',
+            opacity: cell.isFuture ? 0.4 : 1,
+          }}
+        >
+          <span
+            className="material-symbols-outlined text-xl"
+            style={{ fontVariationSettings: cell.completed ? '"FILL" 1' : '"FILL" 0' }}
+            aria-hidden="true"
+          >
+            {cell.completed ? 'check_circle' : 'radio_button_unchecked'}
+          </span>
+          {cell.completed ? 'Done' : 'Mark done'}
+        </button>
+      </div>
+    </div>
+  );
+}
+
 function WeeklyBigBossQuest({ row, onToggle, index }: ChoreRowDisplayProps) {
   const cell = row.days[0];
 
@@ -135,7 +195,6 @@ export function ChoreGrid({ kidId, onToggleSuccess, rows: propRows }: ChoreGridP
 
   const rows = propRows ?? serverRows;
 
-  const [activeTab, setActiveTab] = useState<'main' | 'bonus'>('main');
   const [localRows, setLocalRows] = useState<ChoreRow[]>([]);
 
   useEffect(() => {
@@ -157,8 +216,10 @@ export function ChoreGrid({ kidId, onToggleSuccess, rows: propRows }: ChoreGridP
         })
       );
 
-      toggle(assignmentId, date, newState).then(() => {
-        onToggleSuccess?.();
+      toggle(assignmentId, date, newState).then((saved) => {
+        if (saved) {
+          onToggleSuccess?.();
+        }
       });
     },
     [toggle, onToggleSuccess]
@@ -177,7 +238,7 @@ export function ChoreGrid({ kidId, onToggleSuccess, rows: propRows }: ChoreGridP
     [localRows]
   );
 
-  if (isLoading) {
+  if (isLoading && localRows.length === 0) {
     return (
       <div 
         className="p-8 flex items-center justify-center shadow-[0_8px_24px_rgba(0,0,0,0.06)]"
@@ -229,7 +290,7 @@ export function ChoreGrid({ kidId, onToggleSuccess, rows: propRows }: ChoreGridP
         style={{ backgroundColor: 'var(--primary-container)', opacity: 0.15 }}
       />
 
-      <div className="flex items-center justify-between mb-8 relative z-10">
+      <div className="relative z-10 mb-8 flex items-center justify-between">
         <h2 
           className="text-2xl font-headline font-bold text-on-surface flex items-center gap-2"
           style={{ color: 'var(--on-surface)' }}
@@ -240,87 +301,148 @@ export function ChoreGrid({ kidId, onToggleSuccess, rows: propRows }: ChoreGridP
           >
             calendar_view_week
           </span>
-          This Week&apos;s Quests
+          This Week&apos;s Chores
         </h2>
-        <div 
-          className="flex rounded-full p-1"
-          style={{ backgroundColor: 'var(--surface-container)' }}
-        >
-          <button
-            type="button"
-            onClick={() => setActiveTab('main')}
-            className="px-4 py-1.5 rounded-full text-sm font-bold transition-all"
-            style={{
-              backgroundColor: activeTab === 'main' ? 'var(--surface-container-lowest)' : 'transparent',
-              color: activeTab === 'main' ? 'var(--on-surface)' : 'var(--on-surface-variant)',
-              boxShadow: activeTab === 'main' ? '0 1px 3px rgba(0,0,0,0.1)' : 'none'
-            }}
-          >
-            Main
-          </button>
-          <button
-            type="button"
-            onClick={() => setActiveTab('bonus')}
-            className="px-4 py-1.5 rounded-full text-sm font-bold transition-all"
-            style={{
-              backgroundColor: activeTab === 'bonus' ? 'var(--surface-container-lowest)' : 'transparent',
-              color: activeTab === 'bonus' ? 'var(--on-surface)' : 'var(--on-surface-variant)',
-              boxShadow: activeTab === 'bonus' ? '0 1px 3px rgba(0,0,0,0.1)' : 'none'
-            }}
-          >
-            Bonus
-          </button>
-        </div>
       </div>
 
       {toggleError && (
         <p className="mb-2 text-sm font-medium" style={{ color: 'var(--error)' }}>{toggleError}</p>
       )}
 
-      <div className="space-y-4">
-        {activeTab === 'main' ? (
-          dailyRows.map((row, index) => (
-            <ChoreRowDisplay 
-              key={row.assignmentId} 
-              row={row} 
-              onToggle={handleToggle}
-              index={index}
-            />
-          ))
-        ) : weeklyRows.length > 0 ? (
-          weeklyRows.map((row, index) => (
-            <ChoreRowDisplay 
-              key={row.assignmentId} 
-              row={row} 
-              onToggle={handleToggle}
-              index={index}
-            />
-          ))
-        ) : bossRows.length > 0 ? (
-          null
-        ) : (
-          <div className="py-8 text-center">
-            <span
-              className="material-symbols-outlined text-5xl mb-3 block"
-              style={{ color: 'var(--on-surface-variant)', fontVariationSettings: '"FILL" 1' }}
-            >
-              explore_off
-            </span>
-            <p className="font-headline font-bold text-lg" style={{ color: 'var(--on-surface-variant)' }}>
-              No bonus quests this week
-            </p>
-          </div>
-        )}
-      </div>
+      {localRows.length === 0 ? (
+        <div className="py-8 text-center">
+          <span
+            className="material-symbols-outlined mb-3 block text-5xl"
+            style={{ color: 'var(--on-surface-variant)', fontVariationSettings: '"FILL" 1' }}
+          >
+            task_alt
+          </span>
+          <p
+            className="font-headline text-lg font-bold"
+            style={{ color: 'var(--on-surface-variant)' }}
+          >
+            No chores assigned this week
+          </p>
+        </div>
+      ) : (
+        <div className="space-y-8">
+          {dailyRows.length > 0 && (
+            <section aria-labelledby="daily-chores-heading">
+              <div className="mb-2 flex items-center gap-3">
+                <div
+                  className="flex h-10 w-10 items-center justify-center rounded-xl"
+                  style={{
+                    backgroundColor: 'var(--primary-container)',
+                    color: 'var(--on-primary-container)',
+                  }}
+                >
+                  <span
+                    className="material-symbols-outlined text-xl"
+                    style={{ fontVariationSettings: '"FILL" 1' }}
+                    aria-hidden="true"
+                  >
+                    today
+                  </span>
+                </div>
+                <div className="min-w-0 flex-1">
+                  <h3 id="daily-chores-heading" className="font-headline text-lg font-bold text-on-surface">
+                    Daily chores
+                  </h3>
+                  <p className="text-xs font-medium text-on-surface-variant">
+                    Check them off each day
+                  </p>
+                </div>
+                <span
+                  aria-label={`${dailyRows.length} daily chores`}
+                  className="rounded-full px-3 py-1 text-xs font-bold"
+                  style={{
+                    backgroundColor: 'var(--surface-container)',
+                    color: 'var(--on-surface-variant)',
+                  }}
+                >
+                  {dailyRows.length}
+                </span>
+              </div>
+              <div className="divide-y divide-outline-variant">
+                {dailyRows.map((row, index) => (
+                  <ChoreRowDisplay
+                    key={row.assignmentId}
+                    row={row}
+                    onToggle={handleToggle}
+                    index={index}
+                  />
+                ))}
+              </div>
+            </section>
+          )}
 
-      {bossRows.map((row, index) => (
-        <WeeklyBigBossQuest
-          key={row.assignmentId}
-          row={row}
-          onToggle={handleToggle}
-          index={index}
-        />
-      ))}
+          {(weeklyRows.length > 0 || bossRows.length > 0) && (
+            <section
+              aria-labelledby="weekly-chores-heading"
+              className={dailyRows.length > 0 ? 'border-t pt-7' : undefined}
+              style={{ borderColor: 'var(--outline-variant)' }}
+            >
+              <div className="mb-2 flex items-center gap-3">
+                <div
+                  className="flex h-10 w-10 items-center justify-center rounded-xl"
+                  style={{
+                    backgroundColor: 'var(--tertiary-container)',
+                    color: 'var(--on-tertiary-container)',
+                  }}
+                >
+                  <span
+                    className="material-symbols-outlined text-xl"
+                    style={{ fontVariationSettings: '"FILL" 1' }}
+                    aria-hidden="true"
+                  >
+                    date_range
+                  </span>
+                </div>
+                <div className="min-w-0 flex-1">
+                  <h3 id="weekly-chores-heading" className="font-headline text-lg font-bold text-on-surface">
+                    Weekly chores
+                  </h3>
+                  <p className="text-xs font-medium text-on-surface-variant">
+                    Finish these anytime this week
+                  </p>
+                </div>
+                <span
+                  aria-label={`${weeklyRows.length + bossRows.length} weekly chores`}
+                  className="rounded-full px-3 py-1 text-xs font-bold"
+                  style={{
+                    backgroundColor: 'var(--surface-container)',
+                    color: 'var(--on-surface-variant)',
+                  }}
+                >
+                  {weeklyRows.length + bossRows.length}
+                </span>
+              </div>
+
+              {weeklyRows.length > 0 && (
+                <div className="divide-y divide-outline-variant">
+                  {weeklyRows.map((row, index) => (
+                    <WeeklyChoreRowDisplay
+                      key={row.assignmentId}
+                      row={row}
+                      onToggle={handleToggle}
+                      index={index}
+                    />
+                  ))}
+                </div>
+              )}
+
+              {bossRows.map((row, index) => (
+                <WeeklyBigBossQuest
+                  key={row.assignmentId}
+                  row={row}
+                  onToggle={handleToggle}
+                  index={weeklyRows.length + index}
+                />
+              ))}
+            </section>
+          )}
+        </div>
+      )}
     </div>
   );
 }

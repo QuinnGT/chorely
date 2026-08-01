@@ -6,7 +6,6 @@ import type { Kid } from '@/contexts/KidContext';
 interface ProfileSelectorProps {
   onSelectKid: (kid: Kid) => void;
   onParentTap: () => void;
-  onAddMember?: () => void;
 }
 
 function getKidGradientStyle(themeColor: string): { bg: string; ringFrom: string; ringTo: string } {
@@ -32,7 +31,7 @@ function getKidGlowColor(themeColor: string): string {
   return 'rgba(88,231,251,0.5)';
 }
 
-export function ProfileSelector({ onSelectKid, onParentTap, onAddMember }: ProfileSelectorProps) {
+export function ProfileSelector({ onSelectKid, onParentTap }: ProfileSelectorProps) {
   const [kids, setKids] = useState<Kid[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -210,42 +209,6 @@ export function ProfileSelector({ onSelectKid, onParentTap, onAddMember }: Profi
             </button>
           ))}
 
-          <button
-            type="button"
-            onClick={onAddMember}
-            className="group animate-card-entrance flex flex-col items-center gap-4 active:scale-95 transition-transform duration-200 opacity-0"
-            style={{
-              animationDelay: `${kids.length * 100}ms`,
-              animationFillMode: 'forwards',
-            }}
-          >
-            <div
-              className="relative rounded-full p-1.5 group-hover:bg-error-container transition-colors"
-              style={{
-                width: 'clamp(5rem, 8vw + 2rem, 9rem)',
-                height: 'clamp(5rem, 8vw + 2rem, 9rem)',
-                backgroundColor: 'var(--surface-container-highest)',
-              }}
-            >
-              <div
-                className="w-full h-full rounded-full flex items-center justify-center border-4 shadow-inner"
-                style={{ backgroundColor: 'var(--surface-container-lowest)', borderColor: 'var(--surface-container-lowest)' }}
-              >
-                <span
-                  className="material-symbols-outlined text-outline-variant group-hover:text-white transition-colors"
-                  style={{ fontSize: 'clamp(2rem, 3vw + 1rem, 3.25rem)', fontVariationSettings: "'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24" }}
-                >
-                  add
-                </span>
-              </div>
-            </div>
-            <span
-              className="font-headline font-bold text-on-surface-variant"
-              style={{ fontSize: 'clamp(1rem, 1vw + 0.75rem, 1.35rem)' }}
-            >
-              Add
-            </span>
-          </button>
         </div>
 
         <div className="w-full flex justify-center pt-5" style={{ borderTop: '1px solid var(--outline-variant)' }}>

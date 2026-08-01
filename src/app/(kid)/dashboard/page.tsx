@@ -105,6 +105,11 @@ export default function DashboardPage() {
     refetchAllowance();
   }, [refetchChores, refetchAllowance]);
 
+  const handleChoreToggleSuccess = useCallback(() => {
+    refetchChores();
+    refetchAllowance();
+  }, [refetchChores, refetchAllowance]);
+
   if (!isHydrated || !selectedKid) {
     return null;
   }
@@ -159,7 +164,7 @@ export default function DashboardPage() {
         <section className="md:col-span-6 min-h-0 overflow-y-auto no-scrollbar">
           <div className="animate-card-entrance">
             <ErrorBoundary>
-              <ChoreGrid kidId={selectedKid.id} onToggleSuccess={refetchAllowance} />
+              <ChoreGrid kidId={selectedKid.id} onToggleSuccess={handleChoreToggleSuccess} />
             </ErrorBoundary>
           </div>
         </section>

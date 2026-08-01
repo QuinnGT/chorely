@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { getDaysOfWeek, getWeekStart, formatDate, isToday } from '@/lib/date-utils';
 import type { ChoreFrequency, ChoreKind } from '@/lib/chore-types';
 
@@ -65,6 +65,7 @@ export function useChoreGrid(kidId: string): UseChoreGridResult {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [fetchKey, setFetchKey] = useState(0);
+  const loadedKidIdRef = useRef<string | null>(null);
 
   const refetch = useCallback(() => {
     setFetchKey((prev) => prev + 1);
@@ -75,7 +76,9 @@ export function useChoreGrid(kidId: string): UseChoreGridResult {
     let cancelled = false;
 
     async function fetchData() {
-      setIsLoading(true);
+      if (loadedKidIdRef.current !== kidId) {
+        setIsLoading(true);
+      }
       setError(null);
 
       try {
@@ -139,6 +142,7 @@ export function useChoreGrid(kidId: string): UseChoreGridResult {
 
         const allRows = [...dailyRows, ...weeklyRows];
         setRows(allRows);
+        loadedKidIdRef.current = kidId;
 
         // Calculate completion rate
         const baseAllowanceRows = allRows.filter((r) => r.chore.kind === 'standard');
